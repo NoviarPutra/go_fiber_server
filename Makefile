@@ -28,12 +28,13 @@ run: build
 # Development mode with hot reload (requires Air)
 dev:
 	@echo "🔥 Starting development server with hot reload..."
-	@if command -v air > /dev/null; then \
-		air; \
+	@AIR_PATH=$$(go env GOPATH)/bin/air; \
+	if [ -f "$$AIR_PATH" ]; then \
+		$$AIR_PATH; \
 	else \
-		echo "⚠️  Air is not installed. Installing now..."; \
-		go install github.com/cosmtrek/air@latest; \
-		air; \
+		echo "⚠️  Air not found at $$AIR_PATH. Installing..."; \
+		go install github.com/air-verse/air@latest; \
+		$$AIR_PATH; \
 	fi
 
 # Run tests
