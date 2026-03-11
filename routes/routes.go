@@ -9,13 +9,16 @@ import (
 )
 
 func SetupRoutes(app *fiber.App) {
-	// Route setup logic here
+	// Public Routes
 	app.Get("/", base.InitHandler)
 	app.Get("/health", health.HealthHandler)
 
+	// API Group
 	api := app.Group("/api/v1")
 
-	usersRoute := api.Group("/users")
-	usersRoute.Use(middlewares.Protected())
-	usersRoute.Get("/", middlewares.Pagination, users.UsersHandler)
+	// Users Group (Private)
+	usersGroup := api.Group("/users", middlewares.Protected())
+	{
+		usersGroup.Get("/", middlewares.Pagination, users.UsersHandler)
+	}
 }

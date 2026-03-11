@@ -1,12 +1,15 @@
 package health
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/yourusername/go_server/config"
+	"github.com/yourusername/go_server/utils"
+)
 
 func HealthHandler(ctx *fiber.Ctx) error {
-	return ctx.Status(200).JSON(fiber.Map{
-		"status":  "ok",
-		"message": "Server is healthy",
-		"code":    200,
-		"data":    nil,
-	})
+	err := config.DB.Ping(ctx.Context())
+	if err != nil {
+		return utils.ErrorResponse(ctx, fiber.StatusServiceUnavailable, "Database connection lost")
+	}
+	return utils.Success[any](ctx, nil, "Server and Database are healthy")
 }

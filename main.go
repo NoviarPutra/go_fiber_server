@@ -12,65 +12,71 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/joho/godotenv"
+	"github.com/yourusername/go_server/config"
 	"github.com/yourusername/go_server/handlers/errors"
 	"github.com/yourusername/go_server/routes"
 )
 
 func main() {
+	// 1. Load env & Database
+	if err := godotenv.Load(); err != nil {
+		log.Println("Info: File .env tidak ditemukan, menggunakan env system")
+	}
+
+	config.ConnectDB()
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errors.GlobalErrorHandler,
 		IdleTimeout:  60 * time.Second,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		Prefork:      false,
+		Prefork:      false, // Biarkan false jika menggunakan pool database agar tidak konflik
 	})
 
-	// Middleware
-	app.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-	}))
-	app.Use(logger.New())
-	app.Use(cors.New())
+	// 2. Middleware Stack (Urutan Menentukan Performa)
+	app.Use(recover.New()) // 1. Tangkap panic dulu
+	app.Use(logger.New())  // 2. Catat log request
+	app.Use(cors.New())    // 3. Atur akses cross-origin
+
 	app.Use(limiter.New(limiter.Config{
-		Max:        50,
+		Max:        100, // Tingkatkan sedikit jika trafik tinggi
 		Expiration: 1 * time.Minute,
-		KeyGenerator: func(c *fiber.Ctx) string {
-			return c.IP()
-		},
 	}))
 
-	// Routes
+	// 3. Routes
 	routes.SetupRoutes(app)
 
-	// Get port from environment
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
 	}
 
-	// Buat channel untuk mendengarkan sinyal terminasi
+	// 4. Graceful Shutdown Logic
 	idleConnsClosed := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
-		// Menangkap sinyal interrupt (Ctrl+C) dan terminate (Docker stop)
 		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 		<-sigint
 
 		log.Println("⚠️ Shutting down server...")
 
-		// ShutdownWithTimeout memastikan request yang sedang berjalan diselesaikan dulu
+		// Beri waktu 10 detik untuk menyelesaikan request yang ada
 		if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
-			log.Printf("❌ Shutdown error: %v", err)
+			log.Printf("❌ Fiber shutdown error: %v", err)
 		}
 
-		// Tambahkan di sini: Tutup koneksi database jika ada (misal: db.Close())
+		// Tutup koneksi database setelah server berhenti
+		log.Println("🗄️ Closing database connection pool...")
+		config.DB.Close()
 
 		close(idleConnsClosed)
 	}()
 
+	// 5. Start Server
 	log.Printf("🚀 Server starting on port %s", port)
 	if err := app.Listen(":" + port); err != nil {
-		log.Fatalf("❌ Server failed to start: %v", err)
+		log.Printf("❌ Server stop reason: %v", err)
 	}
 
 	<-idleConnsClosed
