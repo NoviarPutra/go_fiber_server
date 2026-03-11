@@ -16,5 +16,6 @@ func SetupRoutes(app *fiber.App) {
 	api := app.Group("/api/v1")
 
 	usersRoute := api.Group("/users")
+	usersRoute.Use(middlewares.Protected())
 	usersRoute.Get("/", middlewares.Pagination, users.UsersHandler)
 }
