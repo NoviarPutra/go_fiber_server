@@ -1,3 +1,6 @@
+include .env
+export
+
 # Go Fiber Application
 .PHONY: help build run dev test clean install docker-build docker-run
 
@@ -5,6 +8,8 @@
 BINARY_NAME=go_server
 GO_VERSION=1.24.7
 PORT=3000
+MIGRATE_PATH=migrations
+DB_URL=$(DATABASE_URL)
 
 # Default target - show help
 default: help
@@ -41,6 +46,29 @@ dev:
 test:
 	@echo "🧪 Running tests..."
 	go test -v ./...
+
+# --- Database Migration Targets ---
+.PHONY: migrate-create migrate-up migrate-down migrate-force db-status
+
+## migrate-create: Create new migration (usage: make migrate-create name=create_users)
+migrate-create:
+	@migrate create -ext sql -dir $(MIGRATE_PATH) -seq $(name)
+
+## migrate-up: Run all up migrations
+migrate-up:
+	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" up
+
+## migrate-down: Rollback 1 migration
+migrate-down:
+	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" down 1
+
+## migrate-force: Force migration version (usage: make migrate-force version=1)
+migrate-force:
+	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" force $(version)
+
+## db-status: Check current migration version
+db-status:
+	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" version
 
 # Clean build artifacts
 clean:
