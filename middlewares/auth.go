@@ -6,6 +6,7 @@ import (
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/yourusername/go_server/utils"
 )
 
 func Protected() fiber.Handler {
@@ -27,12 +28,7 @@ func Protected() fiber.Handler {
 				message = "Token diperlukan untuk mengakses resource ini"
 			}
 
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"status":  "error",
-				"message": message,
-				// Tambahkan detail error jika di mode development saja
-				"debug": err.Error(),
-			})
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, message)
 		},
 	})
 }

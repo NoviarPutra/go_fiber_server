@@ -1,13 +1,10 @@
 package base
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/yourusername/go_server/utils"
+)
 
 func InitHandler(ctx *fiber.Ctx) error {
-	return ctx.Status(200).JSON(fiber.Map{
-		"status":  "ok",
-		"message": "Welcome to the Go Fiber Server!",
-		"code":    200,
-		"data":    nil,
-	})
-
+	return utils.Success[any](ctx, nil, "Welcome to the Go Fiber Server!")
 }
