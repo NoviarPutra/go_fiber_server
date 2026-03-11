@@ -2,7 +2,17 @@ module github.com/yourusername/go_server
 
 go 1.26
 
-require github.com/gofiber/fiber/v2 v2.52.9
+require (
+	github.com/gofiber/contrib/jwt v1.1.2
+	github.com/gofiber/fiber/v2 v2.52.9
+)
+
+require (
+	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/tinylib/msgp v1.2.5 // indirect
+)
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
