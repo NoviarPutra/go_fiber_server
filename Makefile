@@ -1,146 +1,179 @@
 include .env
 export
 
-# Go Fiber Application
-.PHONY: help build run dev test clean install docker-build docker-run
+.PHONY: help install build run dev test clean fmt lint \
+        migrate-create migrate-up migrate-down migrate-force db-status \
+        docker-build docker-run compose-up compose-down compose-build
 
-# Variables
-BINARY_NAME=go_server
-GO_VERSION=1.24.7
-PORT=3000
-MIGRATE_PATH=migrations
-DB_URL=$(DATABASE_URL)
+# ─── Variables ────────────────────────────────────────────────────────────────
+BINARY_NAME  = go_server
+APP_PORT     = $(PORT)
+MIGRATE_PATH = migrations
+DB_URL       = $(DATABASE_URL)
 
-# Default target - show help
+# ─── Default ──────────────────────────────────────────────────────────────────
 default: help
 
-# Install dependencies
+# ─── Dependencies ─────────────────────────────────────────────────────────────
 install:
 	@echo "📦 Installing dependencies..."
-	go mod download
-	go mod verify
+	@go mod download
+	@go mod verify
+	@echo "✅ Dependencies installed"
 
-# Build the application
-build:
+# ─── Build ────────────────────────────────────────────────────────────────────
+vet:
+	@echo "🔍 Running go vet..."
+	@go vet ./...
+
+build: vet
 	@echo "🔨 Building application..."
-	go build -o $(BINARY_NAME) .
+	@go build -ldflags="-s -w" -o $(BINARY_NAME) .
+	@echo "✅ Build complete: ./$(BINARY_NAME)"
 
-# Run the application
 run: build
-	@echo "🚀 Starting application..."
-	./$(BINARY_NAME)
+	@echo "🚀 Starting application on port $(APP_PORT)..."
+	@./$(BINARY_NAME)
 
-# Development mode with hot reload (requires Air)
+# ─── Development ──────────────────────────────────────────────────────────────
 dev:
 	@echo "🔥 Starting development server with hot reload..."
 	@AIR_PATH=$$(go env GOPATH)/bin/air; \
-	if [ -f "$$AIR_PATH" ]; then \
-		$$AIR_PATH; \
-	else \
-		echo "⚠️  Air not found at $$AIR_PATH. Installing..."; \
+	if [ ! -f "$$AIR_PATH" ]; then \
+		echo "⚠️  Air not found. Installing..."; \
 		go install github.com/air-verse/air@latest; \
-		$$AIR_PATH; \
-	fi
+	fi; \
+	if [ ! -f ".air.toml" ]; then \
+		echo "⚠️  .air.toml tidak ditemukan. Membuat default config..."; \
+		$$AIR_PATH init; \
+	fi; \
+	$$AIR_PATH
 
-# Run tests
+# ─── Test ─────────────────────────────────────────────────────────────────────
 test:
 	@echo "🧪 Running tests..."
-	go test -v ./...
+	@go test -v -race -count=1 ./...
 
-# --- Database Migration Targets ---
-.PHONY: migrate-create migrate-up migrate-down migrate-force db-status
+test-cover:
+	@echo "🧪 Running tests with coverage..."
+	@go test -v -race -count=1 -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Coverage report: coverage.html"
 
-## migrate-create: Create new migration (usage: make migrate-create name=create_users)
-migrate-create:
+# ─── Database Migration ───────────────────────────────────────────────────────
+check-migrate:
+	@if ! command -v migrate > /dev/null; then \
+		echo "❌ golang-migrate tidak ditemukan."; \
+		echo "   Install: https://github.com/golang-migrate/migrate/tree/master/cmd/migrate"; \
+		exit 1; \
+	fi
+
+migrate-create: check-migrate
+	@if [ -z "$(name)" ]; then \
+		echo "❌ Usage: make migrate-create name=create_users"; \
+		exit 1; \
+	fi
 	@migrate create -ext sql -dir $(MIGRATE_PATH) -seq $(name)
+	@echo "✅ Migration created: $(MIGRATE_PATH)"
 
-## migrate-up: Run all up migrations
-migrate-up:
+migrate-up: check-migrate
+	@echo "⬆️  Running all pending migrations..."
 	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" up
+	@echo "✅ Migrations applied"
 
-## migrate-down: Rollback 1 migration
-migrate-down:
+migrate-down: check-migrate
+	@echo "⬇️  Rolling back 1 migration..."
 	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" down 1
+	@echo "✅ Rollback complete"
 
-## migrate-force: Force migration version (usage: make migrate-force version=1)
-migrate-force:
+migrate-force: check-migrate
+	@if [ -z "$(version)" ]; then \
+		echo "❌ Usage: make migrate-force version=1"; \
+		exit 1; \
+	fi
 	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" force $(version)
+	@echo "✅ Migration forced to version $(version)"
 
-## db-status: Check current migration version
-db-status:
+db-status: check-migrate
+	@echo "📊 Current migration version:"
 	@migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" version
 
-# Clean build artifacts
+# ─── Utilities ────────────────────────────────────────────────────────────────
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	go clean
-	rm -f $(BINARY_NAME)
-	rm -rf tmp/
+	@go clean
+	@rm -f $(BINARY_NAME)
+	@rm -f coverage.out coverage.html
+	@rm -rf tmp/
+	@echo "✅ Clean complete"
 
-# Docker commands
-docker-build:
-	@echo "🐳 Building Docker image..."
-	docker build -t $(BINARY_NAME):latest .
-
-docker-run:
-	@echo "🐳 Running Docker container..."
-	docker run -p $(PORT):$(PORT) --rm $(BINARY_NAME):latest
-
-# Docker Compose commands
-compose-up:
-	@echo "🐳 Starting services with Docker Compose..."
-	docker-compose up
-
-compose-down:
-	@echo "🐳 Stopping services..."
-	docker-compose down
-
-compose-build:
-	@echo "🐳 Building services with Docker Compose..."
-	docker-compose build
-
-# Format code
 fmt:
 	@echo "✨ Formatting code..."
-	go fmt ./...
+	@go fmt ./...
+	@echo "✅ Format complete"
 
-# Lint code (requires golangci-lint)
 lint:
 	@echo "🔍 Linting code..."
 	@if command -v golangci-lint > /dev/null; then \
 		golangci-lint run; \
 	else \
-		echo "⚠️  golangci-lint is not installed. Install from https://golangci-lint.run/usage/install/"; \
+		echo "⚠️  golangci-lint tidak ditemukan."; \
+		echo "   Install: https://golangci-lint.run/usage/install/"; \
+		exit 1; \
 	fi
 
-# Show help
+# ─── Docker ───────────────────────────────────────────────────────────────────
+docker-build:
+	@echo "🐳 Building Docker image..."
+	@docker build -t $(BINARY_NAME):latest .
+	@echo "✅ Image built: $(BINARY_NAME):latest"
+
+docker-run:
+	@echo "🐳 Running Docker container on port $(APP_PORT)..."
+	@docker run -p $(APP_PORT):$(APP_PORT) --env-file .env --rm $(BINARY_NAME):latest
+
+compose-up:
+	@echo "🐳 Starting services..."
+	@docker-compose up
+
+compose-down:
+	@echo "🐳 Stopping services..."
+	@docker-compose down
+
+compose-build:
+	@echo "🐳 Building services..."
+	@docker-compose build
+
+# ─── Help ─────────────────────────────────────────────────────────────────────
 help:
-	@echo "go_server - Available commands:"
 	@echo ""
-	@echo "📋 Basic Commands:"
-	@echo "  make install        Install dependencies"
-	@echo "  make build          Build the application"
-	@echo "  make run            Build and run the application"
-	@echo "  make dev            Run with hot reload (installs Air if needed)"
-	@echo "  make test           Run tests"
-	@echo "  make clean          Clean build artifacts"
+	@echo "  $(BINARY_NAME) — Available Commands"
 	@echo ""
-	@echo "🐳 Docker Commands:"
-	@echo "  make docker-build   Build Docker image"
-	@echo "  make docker-run     Run in Docker container"
-	@echo "  make compose-up     Start with Docker Compose"
-	@echo "  make compose-down   Stop Docker Compose services"
-	@echo "  make compose-build  Build Docker Compose services"
+	@echo "  📋 Basic"
+	@echo "    make install                        Install dependencies"
+	@echo "    make build                          Vet + build (optimized)"
+	@echo "    make run                            Build and run"
+	@echo "    make dev                            Hot reload (auto-install Air)"
+	@echo "    make test                           Run tests (with -race)"
+	@echo "    make test-cover                     Run tests + coverage report"
+	@echo "    make clean                          Clean all artifacts"
 	@echo ""
-	@echo "🛠️  Development Commands:"
-	@echo "  make fmt            Format code"
-	@echo "  make lint           Lint code (requires golangci-lint)"
+	@echo "  🗄️  Database"
+	@echo "    make migrate-create name=<name>     Create new migration"
+	@echo "    make migrate-up                     Run all pending migrations"
+	@echo "    make migrate-down                   Rollback 1 migration"
+	@echo "    make migrate-force version=<ver>    Force migration version"
+	@echo "    make db-status                      Check current version"
 	@echo ""
-	@echo "💡 Quick Start:"
-	@echo "  1. make install     # Install dependencies"
-	@echo "  2. make dev         # Start development server with hot reload"
+	@echo "  🐳 Docker"
+	@echo "    make docker-build                   Build Docker image"
+	@echo "    make docker-run                     Run in Docker"
+	@echo "    make compose-up                     Start Docker Compose"
+	@echo "    make compose-down                   Stop Docker Compose"
+	@echo "    make compose-build                  Build Docker Compose"
 	@echo ""
-	@echo "🚀 Creating a new app with create-fiber-app:"
-	@echo "  npx create-fiber-app my-app"
-	@echo "  cd my-app"
-	@echo "  make dev"
+	@echo "  🛠️  Code Quality"
+	@echo "    make fmt                            Format code"
+	@echo "    make lint                           Lint (requires golangci-lint)"
+	@echo "    make vet                            Run go vet"
+	@echo ""
