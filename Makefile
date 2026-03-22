@@ -114,13 +114,13 @@ fmt:
 
 lint:
 	@echo "🔍 Linting code..."
-	@if command -v golangci-lint > /dev/null; then \
-		golangci-lint run; \
-	else \
-		echo "⚠️  golangci-lint tidak ditemukan."; \
-		echo "   Install: https://golangci-lint.run/usage/install/"; \
-		exit 1; \
-	fi
+	@LINT_PATH=$$(go env GOPATH)/bin/golangci-lint; \
+	if [ ! -f "$$LINT_PATH" ]; then \
+		echo "⚠️  golangci-lint tidak ditemukan. Installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+	fi; \
+	$$LINT_PATH run
+	@echo "✅ Lint complete"
 
 # ─── Docker ───────────────────────────────────────────────────────────────────
 docker-build:
