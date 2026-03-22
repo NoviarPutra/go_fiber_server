@@ -1,35 +1,41 @@
 package errors
 
 import (
+	"errors"
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/pkg/errors"
+	pkg_errors "github.com/pkg/errors"
 	"github.com/yourusername/go_server/utils"
 )
 
 func GlobalErrorHandler(c *fiber.Ctx, err error) error {
-	// 1. Tampilkan Stack Trace jika error berasal dari pkg/errors
-	type stackTracer interface {
-		StackTrace() errors.StackTrace
-	}
+	is_dev := os.Getenv("APP_ENV") == "development"
 
-	if err != nil {
-		log.Printf("[ERROR] %v", err)
+	// 1. Log error selalu
+	log.Printf("[ERROR] %v", err)
 
-		// Mengecek apakah error memiliki stack trace
-		if e, ok := err.(stackTracer); ok {
-			log.Printf("Stack Trace: %+v", e.StackTrace())
+	// 2. Stack trace hanya di development
+	if is_dev {
+		type stack_tracer interface {
+			StackTrace() pkg_errors.StackTrace
+		}
+		if e, ok := err.(stack_tracer); ok {
+			log.Printf("[STACK TRACE]\n%+v", e.StackTrace())
 		}
 	}
 
-	// 2. Logic tetap sama
+	// 3. Default: 500
 	code := fiber.StatusInternalServerError
-	message := "Internal Server Error"
-	if e, ok := err.(*fiber.Error); ok {
-		code = e.Code
-		message = e.Message
+	message := "Terjadi kesalahan pada server"
+
+	// 4. Override jika Fiber error (404, 405, dll)
+	var fiber_err *fiber.Error
+	if errors.As(err, &fiber_err) {
+		code = fiber_err.Code
+		message = fiber_err.Message
 	}
 
-	return utils.SendResponse[any](c, code, false, message, nil, nil)
+	return utils.ErrorResponse(c, code, message)
 }
