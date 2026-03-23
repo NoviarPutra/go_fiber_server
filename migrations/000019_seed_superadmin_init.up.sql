@@ -51,7 +51,7 @@ VALUES (
     '99999999-9999-9999-9999-999999999999',
     'admin@saas.com',
     'superadmin',
-    '$argon2id$v=19$m=65536,t=1,p=4$S9U3v6K7YVz9Fw0X$K8L9M0N1P2Q3R4S5T6U7V8W9X0Y1Z2A3B4C5D6E7F8G',
+    '$argon2id$v=19$m=65536,t=1,p=8$lhtkFz6fB00gTovHXaBlvg$La9yBn9dSb4qoiyj1LcwWnvS0jtYTDlw43nrjPNB5nw',
     true,
     true
 ) ON CONFLICT (id) DO NOTHING;
