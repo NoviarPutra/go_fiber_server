@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/yourusername/go_server/handlers/auth"
 	"github.com/yourusername/go_server/handlers/base"
 	"github.com/yourusername/go_server/handlers/health"
 	"github.com/yourusername/go_server/handlers/users"
@@ -14,16 +15,21 @@ var not_found = func(c *fiber.Ctx) error {
 }
 
 func SetupRoutes(app *fiber.App) {
-	// Public Routes
+	// ─── Public ───────────────────────────────────────────────────────────────
 	app.Get("/", base.InitHandler)
 	app.Get("/health", health.HealthHandler)
 
-	// API Group
+	// ─── API v1 ───────────────────────────────────────────────────────────────
 	api := app.Group("/api/v1")
 
-	// Users Group (Private)
+	// Auth
+	auth_group := api.Group("/auth")
+	auth_group.Post("/register", auth.Register)
+	auth_group.Post("/login", auth.Login)
+
+	// Users (private)
 	users_group := api.Group("/users")
-	users_group.Get("/", middlewares.Protected(), middlewares.Pagination, users.UsersHandler)
+	users_group.Get("/", middlewares.Protected(), middlewares.Pagination, users.GetAll)
 
 	// 404
 	app.Use(not_found)
