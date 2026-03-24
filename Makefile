@@ -54,6 +54,14 @@ test:
 	@echo "🧪 Running tests..."
 	@go test -v -race -count=1 ./...
 
+test-integration:
+	@echo "🧪 Running integration tests only..."
+	@go test -v -race ./tests/integration/...
+
+test-unit:
+	@echo "🧪 Running unit tests only..."
+	@go test -v -race ./tests/unit/...
+
 test-cover:
 	@echo "🧪 Running tests with coverage..."
 	@go test -v -race -count=1 -coverprofile=coverage.out ./...

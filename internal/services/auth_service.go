@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourusername/go_server/types"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/types"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 type AuthService struct {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourusername/go_server/types"
+	"github.com/yourusername/go_server/internal/types"
 )
 
 type UsersService struct {

@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/yourusername/go_server/config"
+	app "github.com/yourusername/go_server/internal"
+	"github.com/yourusername/go_server/internal/config"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 	config.ConnectDB()
 
 	// 3. Bootstrap app
-	app := Bootstrap(config.DB)
+	app := app.Bootstrap(config.DB)
 
 	// 4. Port
 	port := os.Getenv("PORT")

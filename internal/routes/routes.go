@@ -2,12 +2,12 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yourusername/go_server/handlers/auth"
-	"github.com/yourusername/go_server/handlers/base"
-	"github.com/yourusername/go_server/handlers/health"
-	"github.com/yourusername/go_server/handlers/users"
-	"github.com/yourusername/go_server/middlewares"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/handlers/auth"
+	"github.com/yourusername/go_server/internal/handlers/base"
+	"github.com/yourusername/go_server/internal/handlers/health"
+	"github.com/yourusername/go_server/internal/handlers/users"
+	"github.com/yourusername/go_server/internal/middlewares"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 var not_found = func(c *fiber.Ctx) error {
