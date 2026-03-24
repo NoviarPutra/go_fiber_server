@@ -2,7 +2,7 @@ package base
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func InitHandler(ctx *fiber.Ctx) error {

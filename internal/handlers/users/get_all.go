@@ -3,9 +3,9 @@ package users
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourusername/go_server/services"
-	"github.com/yourusername/go_server/types"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/services"
+	"github.com/yourusername/go_server/internal/types"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func GetAll(c *fiber.Ctx) error {

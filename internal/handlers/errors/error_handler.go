@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	pkg_errors "github.com/pkg/errors"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func GlobalErrorHandler(c *fiber.Ctx, err error) error {

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func main() {

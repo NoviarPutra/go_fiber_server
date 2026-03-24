@@ -2,7 +2,7 @@ package utils
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yourusername/go_server/types"
+	"github.com/yourusername/go_server/internal/types"
 )
 
 // SendResponse adalah helper internal — semua fungsi wajib lewat sini

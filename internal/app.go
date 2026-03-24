@@ -1,13 +1,13 @@
-package main
+package internal
 
 import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourusername/go_server/handlers/errors"
-	"github.com/yourusername/go_server/middlewares"
-	"github.com/yourusername/go_server/routes"
+	"github.com/yourusername/go_server/internal/handlers/errors"
+	"github.com/yourusername/go_server/internal/middlewares"
+	"github.com/yourusername/go_server/internal/routes"
 )
 
 func Bootstrap(db *pgxpool.Pool) *fiber.App {

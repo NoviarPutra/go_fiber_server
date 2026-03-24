@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func RateLimitMiddleware() fiber.Handler {

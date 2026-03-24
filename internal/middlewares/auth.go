@@ -7,7 +7,7 @@ import (
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/yourusername/go_server/utils"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 func Protected() fiber.Handler {
