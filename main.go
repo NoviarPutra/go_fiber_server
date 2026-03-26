@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -25,15 +25,23 @@ func main() {
 	// 3. Bootstrap app
 	app := app.Bootstrap(config.DB)
 
-	// 4. Port & Sanitization
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
+	// 4. Port & Strict Sanitization
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		portStr = "3000"
 	}
 
-	// FIX G706: Sanitasi variabel port dari karakter newline (\n) dan carriage return (\r)
-	// Ini memutus rantai "taint analysis" dari gosec
-	cleanPort := strings.NewReplacer("\n", "", "\r", "").Replace(port)
+	// Konversi ke Int untuk validasi
+	portInt, err := strconv.Atoi(portStr)
+	if err != nil {
+		// FIX G706: JANGAN mencetak portStr (input kotor) ke dalam log.
+		// Cukup beri tahu bahwa port tidak valid dan kita menggunakan default.
+		log.Println("⚠️  Invalid port detected in environment, falling back to 3000")
+		portInt = 3000
+	}
+
+	// Gunakan strconv.Itoa untuk membuat string baru yang dijamin "bersih"
+	cleanPort := strconv.Itoa(portInt)
 
 	// 5. Graceful shutdown
 	idleConnsClosed := make(chan struct{})
@@ -55,14 +63,11 @@ func main() {
 	}()
 
 	// 6. Start server
-	// Gunakan cleanPort untuk logging
+	// Sekarang baris ini sudah aman karena cleanPort berasal dari int
 	log.Printf("🚀 Server starting on port %s", cleanPort)
 
-	// Untuk Listen, Fiber akan mengabaikan karakter non-digit,
-	// tapi tetap gunakan cleanPort untuk konsistensi
 	if err := app.Listen(":" + cleanPort); err != nil {
 		log.Printf("❌ Server stop reason: %v", err)
-		// Pastikan channel ditutup jika terjadi error saat startup
 		select {
 		case <-idleConnsClosed:
 		default:
