@@ -19,6 +19,14 @@ jobs:
           go-version: "1.26.x"
           cache: true
 
+      - name: Setup Environment
+        run: |
+          touch .env
+          echo "PORT=3000" >> .env
+          echo "APP_ENV=testing" >> .env
+          echo "JWT_SECRET=ci-secret-sauce-123" >> .env
+          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/db_test?sslmode=disable" >> .env
+
       - name: Run Linter
         run: make lint
         # Memastikan kode bersih sesuai standar golangci-lint
