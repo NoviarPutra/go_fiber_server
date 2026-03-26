@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -24,11 +25,23 @@ func main() {
 	// 3. Bootstrap app
 	app := app.Bootstrap(config.DB)
 
-	// 4. Port
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
+	// 4. Port & Strict Sanitization
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		portStr = "3000"
 	}
+
+	// Konversi ke Int untuk validasi
+	portInt, err := strconv.Atoi(portStr)
+	if err != nil {
+		// FIX G706: JANGAN mencetak portStr (input kotor) ke dalam log.
+		// Cukup beri tahu bahwa port tidak valid dan kita menggunakan default.
+		log.Println("⚠️  Invalid port detected in environment, falling back to 3000")
+		portInt = 3000
+	}
+
+	// Gunakan strconv.Itoa untuk membuat string baru yang dijamin "bersih"
+	cleanPort := strconv.Itoa(portInt)
 
 	// 5. Graceful shutdown
 	idleConnsClosed := make(chan struct{})
@@ -50,10 +63,16 @@ func main() {
 	}()
 
 	// 6. Start server
-	log.Printf("🚀 Server starting on port %s", port)
-	if err := app.Listen(":" + port); err != nil {
+	// Sekarang baris ini sudah aman karena cleanPort berasal dari int
+	log.Printf("🚀 Server starting on port %s", cleanPort)
+
+	if err := app.Listen(":" + cleanPort); err != nil {
 		log.Printf("❌ Server stop reason: %v", err)
-		close(idleConnsClosed) // prevent deadlock jika port sudah dipakai
+		select {
+		case <-idleConnsClosed:
+		default:
+			close(idleConnsClosed)
+		}
 	}
 
 	<-idleConnsClosed

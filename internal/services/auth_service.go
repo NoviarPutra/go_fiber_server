@@ -153,9 +153,15 @@ func (s *AuthService) save_refresh_token(ctx context.Context, user_id, token str
 }
 
 func (s *AuthService) update_last_login(ctx context.Context, user_id string) {
-	// Gagal update tidak batalkan login — intentional fire and forget
-	s.db.Exec(ctx,
+	// Gunakan _ untuk memberitahu linter bahwa kita sadar ada error tapi memilih mengabaikannya
+	// Namun, sangat disarankan untuk setidaknya log jika terjadi error
+	_, err := s.db.Exec(ctx,
 		`UPDATE users SET last_login_at = NOW() WHERE id = $1`,
 		user_id,
 	)
+
+	if err != nil {
+		// Log saja, jangan return error karena ini non-critical
+		fmt.Printf("Warning: gagal update last_login untuk user %s: %v\n", user_id, err)
+	}
 }

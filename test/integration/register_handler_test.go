@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/yourusername/go_server/internal/handlers/auth"
 	"github.com/yourusername/go_server/internal/middlewares"
@@ -22,17 +23,14 @@ type RegisterHandlerTestSuite struct {
 
 func (s *RegisterHandlerTestSuite) SetupSuite() {
 	s.app = fiber.New()
-	// Inject DB Pool agar c.Locals("db") tersedia
 	s.app.Use(middlewares.DBMiddleware(testDBPool))
 	s.app.Post("/api/v1/auth/register", auth.Register)
 }
 
 func (s *RegisterHandlerTestSuite) TearDownTest() {
-	// Bersihkan tabel users setelah setiap test case
-	_, _ = testDBPool.Exec(context.Background(), "TRUNCATE users CASCADE")
+	_, err := testDBPool.Exec(context.Background(), "TRUNCATE users CASCADE")
+	require.NoError(s.T(), err)
 }
-
-// ─── TEST CASES ──────────────────────────────────────────────────────────────
 
 func (s *RegisterHandlerTestSuite) TestRegister_Success() {
 	s.Run("Should_Create_User_With_Argon2_Hash", func() {
@@ -41,17 +39,18 @@ func (s *RegisterHandlerTestSuite) TestRegister_Success() {
 			Username: "newuser",
 			Password: "StrongPassword123!",
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		require.NoError(s.T(), err)
 
 		req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 
-		// Argon2id butuh waktu, gunakan timeout yang cukup
 		resp, err := s.app.Test(req, 10000)
-		s.NoError(err)
+		require.NoError(s.T(), err)
+		defer func() { _ = resp.Body.Close() }()
+
 		s.Equal(201, resp.StatusCode)
 
-		// Verifikasi Database: Pastikan password di-hash (Argon2 biasanya dimulai dengan $argon2id$)
 		var dbHash string
 		err = testDBPool.QueryRow(context.Background(),
 			"SELECT password_hash FROM users WHERE email = $1", payload.Email).Scan(&dbHash)
@@ -66,10 +65,13 @@ func (s *RegisterHandlerTestSuite) TestRegister_Duplicate_Conflict() {
 	existingEmail := "existing@officecore.id"
 	existingUser := "existinguser"
 
-	hash, _ := utils.HashPassword("any-pass")
-	_, _ = testDBPool.Exec(context.Background(),
+	hash, err := utils.HashPassword("any-pass")
+	require.NoError(s.T(), err)
+
+	_, err = testDBPool.Exec(context.Background(),
 		"INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3)",
 		existingEmail, existingUser, hash)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name     string
@@ -80,7 +82,7 @@ func (s *RegisterHandlerTestSuite) TestRegister_Duplicate_Conflict() {
 			name: "Duplicate_Email",
 			payload: types.RegisterRequest{
 				Email:    existingEmail,
-				Username: "differentuser", // FIX: Hapus dash agar lolos validasi alphanum
+				Username: "differentuser",
 				Password: "Password123!",
 			},
 			expected: "Email sudah terdaftar",
@@ -88,7 +90,7 @@ func (s *RegisterHandlerTestSuite) TestRegister_Duplicate_Conflict() {
 		{
 			name: "Duplicate_Username",
 			payload: types.RegisterRequest{
-				Email:    "newuser@officecore.id", // FIX: Email unik agar tidak kena error email duluan
+				Email:    "newuser@officecore.id",
 				Username: existingUser,
 				Password: "Password123!",
 			},
@@ -98,14 +100,21 @@ func (s *RegisterHandlerTestSuite) TestRegister_Duplicate_Conflict() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			body, _ := json.Marshal(tt.payload)
+			body, err := json.Marshal(tt.payload)
+			require.NoError(s.T(), err)
+
 			req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, _ := s.app.Test(req, 10000)
+			resp, err := s.app.Test(req, 10000)
+			require.NoError(s.T(), err)
+			defer func() { _ = resp.Body.Close() }()
 
 			var res map[string]interface{}
-			json.NewDecoder(resp.Body).Decode(&res)
+
+			// FIX UTAMA: Tangkap error dari Decode
+			err = json.NewDecoder(resp.Body).Decode(&res)
+			require.NoError(s.T(), err, "Gagal mendecode response error register")
 
 			s.Equal(400, resp.StatusCode)
 			s.Equal(tt.expected, res["message"])
@@ -125,11 +134,16 @@ func (s *RegisterHandlerTestSuite) TestRegister_Validation_Rules() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			body, _ := json.Marshal(tt.payload)
+			body, err := json.Marshal(tt.payload)
+			require.NoError(s.T(), err)
+
 			req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, _ := s.app.Test(req)
+			resp, err := s.app.Test(req)
+			require.NoError(s.T(), err)
+			defer func() { _ = resp.Body.Close() }()
+
 			s.Equal(400, resp.StatusCode)
 		})
 	}

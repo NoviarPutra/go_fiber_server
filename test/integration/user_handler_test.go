@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require" // Gunakan require untuk fail-fast
 	"github.com/stretchr/testify/suite"
 	"github.com/yourusername/go_server/internal/handlers/users"
 )
@@ -33,23 +34,35 @@ func (s *UsersIntegrationTestSuite) SetupSuite() {
 }
 
 func (s *UsersIntegrationTestSuite) TearDownTest() {
-	_, _ = s.pool.Exec(context.Background(), "TRUNCATE users RESTART IDENTITY CASCADE")
+	// FIX: Cek error truncate secara eksplisit atau gunakan blank identifier yang jelas
+	_, err := s.pool.Exec(context.Background(), "TRUNCATE users RESTART IDENTITY CASCADE")
+	require.NoError(s.T(), err, "Gagal membersihkan database")
 }
 
 func (s *UsersIntegrationTestSuite) Test_GetAll_Success() {
 	_, err := s.pool.Exec(context.Background(),
 		"INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3)",
 		"budiawan@fedora.id", "budiawan", "securehash")
-	s.NoError(err)
+	require.NoError(s.T(), err)
 
 	req := httptest.NewRequest("GET", "/api/v1/users", nil)
-	resp, _ := s.app.Test(req)
+
+	// FIX: Tangkap error dari app.Test
+	resp, err := s.app.Test(req)
+	require.NoError(s.T(), err)
+	defer func() { _ = resp.Body.Close() }() // Bullet-proof: Tutup body
 
 	s.Equal(200, resp.StatusCode)
 
-	body, _ := io.ReadAll(resp.Body)
+	// FIX: Tangkap error dari io.ReadAll
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(s.T(), err)
+
 	var res map[string]interface{}
-	json.Unmarshal(body, &res)
+
+	// FIX UTAMA: Cek hasil return dari json.Unmarshal (Sesuai laporan linter)
+	err = json.Unmarshal(body, &res)
+	require.NoError(s.T(), err, "Gagal unmarshal JSON response")
 
 	s.Equal(true, res["success"])
 	s.NotNil(res["data"])

@@ -76,8 +76,11 @@ func LoggerMiddleware() fiber.Handler {
 		},
 
 		Done: func(c *fiber.Ctx, logString []byte) {
+			// Jika terjadi server error (500+), tulis ke Stderr
 			if c.Response().StatusCode() >= 500 {
-				os.Stderr.Write(logString) //nolint:errcheck
+				// FIX G104: Gunakan blank identifier untuk membuang error secara eksplisit
+				// Ini memberitahu linter bahwa kita sadar ada error tapi memilih mengabaikannya
+				_, _ = os.Stderr.Write(logString)
 			}
 
 			if is_dev {
@@ -87,8 +90,8 @@ func LoggerMiddleware() fiber.Handler {
 				if len(body) > 0 && containsStr(content_type, "application/json") {
 					pretty := pretty_json(body)
 					if pretty != "" {
-						// ✅ Hapus warna abu-abu global, warna sudah per elemen
-						os.Stdout.WriteString("  ↳ " + pretty + "\n") //nolint:errcheck
+						// FIX G104: Sama seperti di atas, buang return value error-nya
+						_, _ = os.Stdout.WriteString("  ↳ " + pretty + "\n")
 					}
 				}
 			}

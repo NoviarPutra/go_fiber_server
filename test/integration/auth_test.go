@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/yourusername/go_server/internal"
 	"github.com/yourusername/go_server/internal/types"
@@ -28,36 +29,33 @@ func (s *AuthIntegrationTestSuite) SetupSuite() {
 	s.app = internal.Bootstrap(dbPool)
 }
 
-// SetupTest berjalan SETIAP KALI sebelum satu s.Run(...)
-// Ini memastikan email "test.user@officecore.id" tidak bentrok antar sub-test
-func (s *AuthIntegrationTestSuite) SetupTest() {
-	// Opsional: Tambahkan logika TRUNCATE users table di sini jika perlu
-}
-
 func (s *AuthIntegrationTestSuite) TearDownSuite() {
-	s.cleanup()
+	if s.cleanup != nil {
+		s.cleanup()
+	}
 }
 
 func (s *AuthIntegrationTestSuite) TestAuthFlow() {
-	// Gunakan data yang valid sesuai requirement logic Anda
 	username := "testuser123"
 	email := "test.user@officecore.id"
 	password := "Secret123!"
 
 	s.Run("Register_New_User", func() {
 		payload := map[string]interface{}{
-			"username": username, // TAMBAHKAN INI
+			"username": username,
 			"email":    email,
 			"password": password,
 			"name":     "Test User",
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		require.NoError(s.T(), err)
 
 		req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 
-		// Gunakan timeout yang aman untuk environment Docker/Colima
-		resp, _ := s.app.Test(req, 30000)
+		resp, err := s.app.Test(req, 30000)
+		require.NoError(s.T(), err)
+		defer func() { _ = resp.Body.Close() }() // Bullet-proof: Tutup body
 
 		if resp.StatusCode != fiber.StatusCreated {
 			respBody, _ := io.ReadAll(resp.Body)
@@ -68,23 +66,27 @@ func (s *AuthIntegrationTestSuite) TestAuthFlow() {
 	})
 
 	s.Run("Login_Success", func() {
-		// Login biasanya menggunakan email atau username
-		// Sesuaikan dengan logic handler login Anda
 		payload := map[string]string{
 			"email":    email,
 			"password": password,
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		require.NoError(s.T(), err)
 
 		req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 
-		resp, _ := s.app.Test(req, 30000)
+		resp, err := s.app.Test(req, 30000)
+		require.NoError(s.T(), err)
+		defer func() { _ = resp.Body.Close() }() // Bullet-proof: Tutup body
 
 		s.Equal(fiber.StatusOK, resp.StatusCode)
 
 		var result types.StandardResponse[map[string]interface{}]
-		json.NewDecoder(resp.Body).Decode(&result)
+
+		// FIX: Tangkap error dari Decode agar lolos errcheck
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(s.T(), err, "Gagal mendecode JSON response login")
 
 		s.True(result.Success)
 		s.NotEmpty(result.Data["access_token"])

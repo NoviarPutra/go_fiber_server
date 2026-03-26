@@ -20,9 +20,11 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 }
 
 // TearDownTest memastikan database bersih setiap kali menjalankan satu fungsi test
-func (s *AuthServiceTestSuite) TearDownTest() {
+func (s *AuthIntegrationTestSuite) TearDownTest() {
 	ctx := context.Background()
-	testDBPool.Exec(ctx, "TRUNCATE users, refresh_tokens CASCADE")
+	// SESUDAH: Cek error dari Exec
+	_, err := testDBPool.Exec(ctx, "TRUNCATE users, refresh_tokens CASCADE")
+	s.Require().NoError(err, "Gagal membersihkan database saat TearDown")
 }
 
 // ─── REGISTER TESTS ──────────────────────────────────────────────────────────
