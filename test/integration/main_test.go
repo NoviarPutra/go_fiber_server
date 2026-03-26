@@ -8,21 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Variable global agar bisa diakses semua file test di package ini
+// Cukup deklarasikan di sini saja
 var testDBPool *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	// Setup database satu kali
+	// Setup database satu kali untuk semua file di package ini
 	pool, cleanup := SetupTestContainer(ctx)
 	testDBPool = pool
 
-	// Jalankan semua test
 	code := m.Run()
 
-	// Hapus container setelah selesai
 	cleanup()
-
 	os.Exit(code)
 }

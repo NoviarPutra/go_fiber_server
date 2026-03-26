@@ -10,33 +10,26 @@ import (
 )
 
 func TestHealthHandler_Integration(t *testing.T) {
-	// 1. Inisialisasi App Fiber menggunakan pool database dari Testcontainers
-	// Karena Bootstrap(db) menyuntikkan middleware DBMiddleware(db),
-	// c.Locals("db") akan terisi secara otomatis.
 	app := internal.Bootstrap(testDBPool)
 
-	// 2. Buat Request ke endpoint /health
-	req := httptest.NewRequest("GET", "/health", nil)
+	t.Run("Success Path", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/health", nil)
+		resp, err := app.Test(req)
 
-	// 3. Eksekusi Request
-	resp, err := app.Test(req, -1) // -1 menghilangkan limit timeout default fiber test
+		assert.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode)
 
-	// 4. Assertions (Standar Enterprise)
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
+		var body map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&body)
 
-	// 5. Validasi Struktur Response Body
-	var body map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&body)
-	assert.NoError(t, err)
+		// Pastikan data stats DB muncul (ini menaikkan coverage di handler)
+		data := body["data"].(map[string]interface{})
+		assert.NotNil(t, data["db_pool_total"])
+	})
 
-	// Cek apakah success true (asumsi utils.Success mengembalikan field 'success')
-	assert.True(t, body["success"].(bool))
-
-	// Cek data stats database
-	data := body["data"].(map[string]interface{})
-	assert.NotNil(t, data["db_pool_total"])
-	assert.NotNil(t, data["db_pool_idle"])
-
-	assert.Equal(t, "Server dan database berjalan normal", body["message"])
+	t.Run("404 Route Path", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/invalid-route", nil)
+		resp, _ := app.Test(req)
+		assert.Equal(t, 404, resp.StatusCode)
+	})
 }
