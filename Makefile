@@ -49,6 +49,23 @@ dev:
 	fi; \
 	$$AIR_PATH
 
+# ─── Environment Configuration ──────────────────────────────────────────────
+# Deteksi OS untuk fleksibilitas path Docker Socket
+UNAME_S := $(shell uname -s)
+USER_HOME := $(shell echo $$HOME)
+
+ifeq ($(UNAME_S),Darwin)
+    # Jalur khusus Colima di macOS
+    export DOCKER_HOST ?= unix://$(USER_HOME)/.colima/default/docker.sock
+else
+    # Jalur standar Linux/Fedora
+    export DOCKER_HOST ?= unix:///var/run/docker.sock
+endif
+
+# Ryuk sering bermasalah di Docker Desktop/Colima, matikan untuk stabilitas
+export TESTCONTAINERS_RYUK_DISABLED = true
+export APP_ENV = testing
+
 # ─── Test ─────────────────────────────────────────────────────────────────────
 test:
 	@echo "🧪 Running tests..."
@@ -63,10 +80,17 @@ test-unit:
 	@go test -v -race ./tests/unit/...
 
 test-cover:
-	@echo "🧪 Running tests with coverage..."
-	@go test -v -race -count=1 -coverprofile=coverage.out ./...
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report: coverage.html"
+	@echo "🧪 Running Bullet-Proof Tests with Atomic Coverage..."
+	@go test -v -race -count=1 \
+		-covermode=atomic \
+		-coverprofile=coverage.out \
+		-coverpkg=./internal/... \
+		./...
+	@echo "\n📊 Coverage Summary per Function:"
+	@go tool cover -func=coverage.out
+	@echo "\n💡 TIP: Run 'go tool cover -html=coverage.out' to see red/green lines."
+
+.PHONY: test-cover
 
 # ─── Database Migration ───────────────────────────────────────────────────────
 check-migrate:

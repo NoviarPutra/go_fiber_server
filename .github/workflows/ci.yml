@@ -1,0 +1,65 @@
+name: Go Server CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  quality-gate:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+
+      - name: Run Linter
+        run: make lint
+        # Memastikan kode bersih sesuai standar golangci-lint
+
+      - name: Security Scan (Gosec)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./...
+        # Mencari celah keamanan seperti SQL Injection atau hardcoded credentials
+
+  integration-test:
+    name: Bullet-Proof Testing
+    needs: quality-gate
+    runs-on: ubuntu-latest
+
+    # Service container tidak diperlukan di sini karena kita pakai Testcontainers
+    # yang akan memutar Docker secara dinamis saat runtime.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+
+      - name: Create Dummy .env
+        run: |
+          cp .env.example .env || echo "JWT_SECRET=ci-secret" > .env
+        # Menghindari error 'file .env tidak ditemukan' saat make test-cover
+
+      - name: Run Tests with Coverage
+        env:
+          # Penting untuk Testcontainers di GitHub Actions
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          APP_ENV: testing
+        run: make test-cover
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.out
