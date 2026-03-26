@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
 	"runtime"
 	"strings"
 
@@ -91,7 +92,13 @@ func CheckPasswordHash(password, encodedHash string) (bool, error) {
 		return false, err
 	}
 
-	comparisonHash := argon2.IDKey([]byte(password), salt, time, memory, threads, uint32(len(decodedHash)))
+	hashLen := len(decodedHash)
+	if hashLen > math.MaxUint32 {
+		return false, errors.New("hash length exceeds uint32 capacity")
+	}
+	uint32HashLen := uint32(hashLen)
+
+	comparisonHash := argon2.IDKey([]byte(password), salt, time, memory, threads, uint32HashLen)
 
 	return subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1, nil
 }

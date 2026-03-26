@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,11 +25,15 @@ func main() {
 	// 3. Bootstrap app
 	app := app.Bootstrap(config.DB)
 
-	// 4. Port
+	// 4. Port & Sanitization
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
 	}
+
+	// FIX G706: Sanitasi variabel port dari karakter newline (\n) dan carriage return (\r)
+	// Ini memutus rantai "taint analysis" dari gosec
+	cleanPort := strings.NewReplacer("\n", "", "\r", "").Replace(port)
 
 	// 5. Graceful shutdown
 	idleConnsClosed := make(chan struct{})
@@ -50,10 +55,19 @@ func main() {
 	}()
 
 	// 6. Start server
-	log.Printf("🚀 Server starting on port %s", port)
-	if err := app.Listen(":" + port); err != nil {
+	// Gunakan cleanPort untuk logging
+	log.Printf("🚀 Server starting on port %s", cleanPort)
+
+	// Untuk Listen, Fiber akan mengabaikan karakter non-digit,
+	// tapi tetap gunakan cleanPort untuk konsistensi
+	if err := app.Listen(":" + cleanPort); err != nil {
 		log.Printf("❌ Server stop reason: %v", err)
-		close(idleConnsClosed) // prevent deadlock jika port sudah dipakai
+		// Pastikan channel ditutup jika terjadi error saat startup
+		select {
+		case <-idleConnsClosed:
+		default:
+			close(idleConnsClosed)
+		}
 	}
 
 	<-idleConnsClosed
