@@ -142,7 +142,7 @@ func http_status_text(status int) string {
 }
 
 func pretty_json(body []byte) string {
-	var parsed interface{}
+	var parsed any
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return "" // bukan JSON valid, skip
 	}
@@ -166,7 +166,7 @@ func colorize_json(buf *bytes.Buffer, v interface{}, indent string) {
 
 	switch val := v.(type) {
 
-	case map[string]interface{}:
+	case map[string]any:
 		buf.WriteString("{\n")
 		keys := make([]string, 0, len(val))
 		for k := range val {
@@ -185,7 +185,7 @@ func colorize_json(buf *bytes.Buffer, v interface{}, indent string) {
 		}
 		buf.WriteString(indent + "}")
 
-	case []interface{}:
+	case []any:
 		buf.WriteString("[\n")
 		for i, item := range val {
 			buf.WriteString(child_indent)
