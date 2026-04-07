@@ -152,7 +152,7 @@ func pretty_json(body []byte) string {
 	return buf.String()
 }
 
-func colorize_json(buf *bytes.Buffer, v interface{}, indent string) {
+func colorize_json(buf *bytes.Buffer, v any, indent string) {
 	const (
 		color_key    = "\x1b[96m" // Cyan terang — key
 		color_string = "\x1b[32m" // Hijau — string value
