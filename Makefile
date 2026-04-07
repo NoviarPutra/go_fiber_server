@@ -64,21 +64,24 @@ endif
 
 # Ryuk sering bermasalah di Docker Desktop/Colima, matikan untuk stabilitas
 export TESTCONTAINERS_RYUK_DISABLED = true
-export APP_ENV = testing
 
 # ─── Test ─────────────────────────────────────────────────────────────────────
+test: export APP_ENV = testing
 test:
 	@echo "🧪 Running tests..."
 	@go test -v -race -count=1 ./...
 
+test-integration: export APP_ENV = testing
 test-integration:
 	@echo "🧪 Running integration tests only..."
 	@go test -v -race ./tests/integration/...
 
+test-unit: export APP_ENV = testing
 test-unit:
 	@echo "🧪 Running unit tests only..."
 	@go test -v -race ./tests/unit/...
 
+test-cover: export APP_ENV = testing
 test-cover:
 	@echo "🧪 Running Bullet-Proof Tests with Atomic Coverage..."
 	@go test -v -race -count=1 \
