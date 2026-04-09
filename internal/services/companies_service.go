@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yourusername/go_server/internal/types"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 type CompaniesService struct {
@@ -29,9 +30,11 @@ func (s *CompaniesService) Create(ctx context.Context, req types.CreateCompanyRe
 		RETURNING id::text, name, code, logo_url, created_at, updated_at`
 
 	var company types.CompanyRow
-	err := s.db.QueryRow(ctx, query, req.Name, req.Code, req.LogoUrl).Scan(
-		&company.ID, &company.Name, &company.Code, &company.LogoUrl, &company.CreatedAt, &company.UpdatedAt,
-	)
+	err := utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, query, req.Name, req.Code, req.LogoUrl).Scan(
+			&company.ID, &company.Name, &company.Code, &company.LogoUrl, &company.CreatedAt, &company.UpdatedAt,
+		)
+	})
 
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
@@ -147,9 +150,11 @@ func (s *CompaniesService) Update(ctx context.Context, id string, req types.Upda
 		RETURNING id::text, name, code, logo_url, created_at, updated_at`
 
 	var company types.CompanyRow
-	err = s.db.QueryRow(ctx, query, name, code, logoUrl, id).Scan(
-		&company.ID, &company.Name, &company.Code, &company.LogoUrl, &company.CreatedAt, &company.UpdatedAt,
-	)
+	err = utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, query, name, code, logoUrl, id).Scan(
+			&company.ID, &company.Name, &company.Code, &company.LogoUrl, &company.CreatedAt, &company.UpdatedAt,
+		)
+	})
 
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
@@ -166,7 +171,12 @@ func (s *CompaniesService) Delete(ctx context.Context, id string) error {
 	defer cancel()
 
 	query := `UPDATE companies SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL`
-	commandTag, err := s.db.Exec(ctx, query, id)
+	var commandTag pgconn.CommandTag
+	err := utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		var txErr error
+		commandTag, txErr = tx.Exec(ctx, query, id)
+		return txErr
+	})
 	if err != nil {
 		return fmt.Errorf("gagal menghapus data perusahaan")
 	}

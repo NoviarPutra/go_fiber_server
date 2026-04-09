@@ -28,7 +28,8 @@ func Update(c *fiber.Ctx) error {
 	db := c.Locals("db").(*pgxpool.Pool)
 	svc := services.NewCompaniesService(db)
 
-	company, err := svc.Update(c.Context(), id, req)
+	ctx := utils.InjectAuditInfo(c, utils.GetUserIDFromCtx(c), id)
+	company, err := svc.Update(ctx, id, req)
 	if err != nil {
 		if err == services.ErrCompanyNotFound {
 			return utils.NotFound(c, err.Error())

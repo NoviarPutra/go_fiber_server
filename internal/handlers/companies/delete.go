@@ -16,7 +16,8 @@ func Delete(c *fiber.Ctx) error {
 	db := c.Locals("db").(*pgxpool.Pool)
 	svc := services.NewCompaniesService(db)
 
-	if err := svc.Delete(c.Context(), id); err != nil {
+	ctx := utils.InjectAuditInfo(c, utils.GetUserIDFromCtx(c), id)
+	if err := svc.Delete(ctx, id); err != nil {
 		if err == services.ErrCompanyNotFound {
 			return utils.NotFound(c, err.Error())
 		}

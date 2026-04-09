@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	github_com_gofiber_fiber_v2 "github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -88,4 +89,18 @@ func ParseClaims(token_string string) (*JWTClaims, error) {
 	}
 
 	return claims, nil
+}
+
+// GetUserIDFromCtx mengambil user ID dari token yang di set JWT Middleware
+func GetUserIDFromCtx(c *github_com_gofiber_fiber_v2.Ctx) string {
+	userToken, ok := c.Locals("user_auth").(*jwt.Token)
+	if !ok {
+		return ""
+	}
+	claims, ok := userToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return ""
+	}
+	userID, _ := claims["user_id"].(string)
+	return userID
 }
