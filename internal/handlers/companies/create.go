@@ -23,7 +23,8 @@ func Create(c *fiber.Ctx) error {
 	db := c.Locals("db").(*pgxpool.Pool)
 	svc := services.NewCompaniesService(db)
 
-	company, err := svc.Create(c.Context(), req)
+	ctx := utils.InjectAuditInfo(c, utils.GetUserIDFromCtx(c), "")
+	company, err := svc.Create(ctx, req)
 	if err != nil {
 		if err == services.ErrCompanyCodeExists {
 			return utils.Conflict(c, err.Error())

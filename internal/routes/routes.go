@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourusername/go_server/internal/handlers/auth"
+	"github.com/yourusername/go_server/internal/handlers/audit_logs"
 	"github.com/yourusername/go_server/internal/handlers/base"
 	"github.com/yourusername/go_server/internal/handlers/companies"
 	"github.com/yourusername/go_server/internal/handlers/company_branches"
@@ -48,6 +49,11 @@ func SetupRoutes(app *fiber.App) {
 	branches_group.Get("/:id", middlewares.Protected(), company_branches.GetByID)
 	branches_group.Put("/:id", middlewares.Protected(), company_branches.Update)
 	branches_group.Delete("/:id", middlewares.Protected(), company_branches.Delete)
+
+	// Audit Logs (private - admin only ideally, but we put it here)
+	audit_group := api.Group("/audit-logs")
+	audit_group.Get("/", middlewares.Protected(), middlewares.Pagination, audit_logs.GetAll)
+	audit_group.Get("/:id", middlewares.Protected(), audit_logs.GetByID)
 
 	// 404
 	app.Use(not_found)

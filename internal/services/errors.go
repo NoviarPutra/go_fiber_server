@@ -17,4 +17,6 @@ var (
 
 	ErrCompanyBranchNotFound   = errors.New("cabang perusahaan tidak ditemukan")
 	ErrCompanyBranchNameExists = errors.New("nama cabang sudah digunakan di perusahaan ini")
+
+	ErrAuditLogNotFound = errors.New("audit log tidak ditemukan")
 )

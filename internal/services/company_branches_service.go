@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yourusername/go_server/internal/types"
+	"github.com/yourusername/go_server/internal/utils"
 )
 
 type CompanyBranchesService struct {
@@ -29,9 +30,11 @@ func (s *CompanyBranchesService) Create(ctx context.Context, req types.CreateCom
 		RETURNING id::text, company_id::text, name, address, timezone, created_at, updated_at`
 
 	var branch types.CompanyBranchRow
-	err := s.db.QueryRow(ctx, query, req.CompanyID, req.Name, req.Address, req.Timezone).Scan(
-		&branch.ID, &branch.CompanyID, &branch.Name, &branch.Address, &branch.Timezone, &branch.CreatedAt, &branch.UpdatedAt,
-	)
+	err := utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, query, req.CompanyID, req.Name, req.Address, req.Timezone).Scan(
+			&branch.ID, &branch.CompanyID, &branch.Name, &branch.Address, &branch.Timezone, &branch.CreatedAt, &branch.UpdatedAt,
+		)
+	})
 
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
@@ -151,9 +154,11 @@ func (s *CompanyBranchesService) Update(ctx context.Context, id string, req type
 		RETURNING id::text, company_id::text, name, address, timezone, created_at, updated_at`
 
 	var branch types.CompanyBranchRow
-	err = s.db.QueryRow(ctx, query, companyID, name, address, timezone, id).Scan(
-		&branch.ID, &branch.CompanyID, &branch.Name, &branch.Address, &branch.Timezone, &branch.CreatedAt, &branch.UpdatedAt,
-	)
+	err = utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, query, companyID, name, address, timezone, id).Scan(
+			&branch.ID, &branch.CompanyID, &branch.Name, &branch.Address, &branch.Timezone, &branch.CreatedAt, &branch.UpdatedAt,
+		)
+	})
 
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
@@ -170,7 +175,13 @@ func (s *CompanyBranchesService) Delete(ctx context.Context, id string) error {
 	defer cancel()
 
 	query := `UPDATE company_branches SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL`
-	commandTag, err := s.db.Exec(ctx, query, id)
+	var commandTag pgconn.CommandTag
+	err := utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
+		var txErr error
+		commandTag, txErr = tx.Exec(ctx, query, id)
+		return txErr
+	})
+
 	if err != nil {
 		return fmt.Errorf("gagal menghapus data cabang perusahaan: %w", err)
 	}
