@@ -26,7 +26,7 @@ func Create(c *fiber.Ctx) error {
 	company, err := svc.Create(c.Context(), req)
 	if err != nil {
 		if err == services.ErrCompanyCodeExists {
-			return utils.BadRequest(c, err.Error())
+			return utils.Conflict(c, err.Error())
 		}
 		return utils.InternalError(c, err.Error())
 	}

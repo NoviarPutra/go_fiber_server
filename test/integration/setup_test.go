@@ -16,6 +16,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+var TestContainerConnStr string
+
 func SetupTestContainer(ctx context.Context) (*pgxpool.Pool, func()) {
 	// 1. Jalankan Container Postgres menggunakan pg.Run (API Terbaru)
 	container, err := pg.Run(ctx,
@@ -37,6 +39,7 @@ func SetupTestContainer(ctx context.Context) (*pgxpool.Pool, func()) {
 	if err != nil {
 		log.Fatalf("❌ Failed to get connection string: %v", err)
 	}
+	TestContainerConnStr = connStr
 
 	// 2. Jalankan Migrasi
 	runGoMigrations(connStr)

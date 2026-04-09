@@ -23,5 +23,5 @@ func Delete(c *fiber.Ctx) error {
 		return utils.InternalError(c, err.Error())
 	}
 
-	return utils.Success[any](c, nil, "Data perusahaan berhasil dihapus")
+	return utils.NoContent(c)
 }

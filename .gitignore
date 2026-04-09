@@ -13,6 +13,7 @@ tmp/
 *.test
 
 # Code coverage profiles and other test artifacts
+.go_cache
 *.out
 coverage.*
 *.coverprofile
