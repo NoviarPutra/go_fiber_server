@@ -61,7 +61,7 @@ func TestExtraCoverage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 202, resp.StatusCode)
 	})
-	
+
 	t.Run("SuccessWithMeta_Coverage", func(t *testing.T) {
 		app := fiber.New()
 		app.Get("/meta", func(c *fiber.Ctx) error {

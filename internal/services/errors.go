@@ -12,6 +12,6 @@ var (
 	ErrRefreshTokenExpired   = errors.New("refresh token kadaluarsa")
 	ErrRefreshTokenRevoked   = errors.New("refresh token sudah digunakan")
 
-	ErrCompanyNotFound       = errors.New("perusahaan tidak ditemukan")
-	ErrCompanyCodeExists     = errors.New("kode perusahaan sudah digunakan")
+	ErrCompanyNotFound   = errors.New("perusahaan tidak ditemukan")
+	ErrCompanyCodeExists = errors.New("kode perusahaan sudah digunakan")
 )
