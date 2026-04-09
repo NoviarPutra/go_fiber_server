@@ -14,4 +14,7 @@ var (
 
 	ErrCompanyNotFound   = errors.New("perusahaan tidak ditemukan")
 	ErrCompanyCodeExists = errors.New("kode perusahaan sudah digunakan")
+
+	ErrCompanyBranchNotFound   = errors.New("cabang perusahaan tidak ditemukan")
+	ErrCompanyBranchNameExists = errors.New("nama cabang sudah digunakan di perusahaan ini")
 )
