@@ -5,6 +5,7 @@ import (
 	"github.com/yourusername/go_server/internal/handlers/auth"
 	"github.com/yourusername/go_server/internal/handlers/base"
 	"github.com/yourusername/go_server/internal/handlers/companies"
+	"github.com/yourusername/go_server/internal/handlers/company_branches"
 	"github.com/yourusername/go_server/internal/handlers/health"
 	"github.com/yourusername/go_server/internal/handlers/users"
 	"github.com/yourusername/go_server/internal/middlewares"
@@ -39,6 +40,14 @@ func SetupRoutes(app *fiber.App) {
 	companies_group.Get("/:id", middlewares.Protected(), companies.GetByID)
 	companies_group.Put("/:id", middlewares.Protected(), companies.Update)
 	companies_group.Delete("/:id", middlewares.Protected(), companies.Delete)
+
+	// Company Branches (private)
+	branches_group := api.Group("/company-branches")
+	branches_group.Post("/", middlewares.Protected(), company_branches.Create)
+	branches_group.Get("/", middlewares.Protected(), middlewares.Pagination, company_branches.GetAll)
+	branches_group.Get("/:id", middlewares.Protected(), company_branches.GetByID)
+	branches_group.Put("/:id", middlewares.Protected(), company_branches.Update)
+	branches_group.Delete("/:id", middlewares.Protected(), company_branches.Delete)
 
 	// 404
 	app.Use(not_found)
