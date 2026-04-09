@@ -57,7 +57,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/var", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 202, resp.StatusCode)
 	})
 	
@@ -68,7 +69,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/meta", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 200, resp.StatusCode)
 	})
 
@@ -79,7 +81,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/unauth", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 401, resp.StatusCode)
 	})
 
@@ -90,7 +93,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/bad", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 400, resp.StatusCode)
 	})
 
@@ -101,7 +105,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/notfound", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 404, resp.StatusCode)
 	})
 
@@ -112,7 +117,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/conflict", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 409, resp.StatusCode)
 	})
 
@@ -123,7 +129,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/created", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 201, resp.StatusCode)
 	})
 
@@ -134,7 +141,8 @@ func TestExtraCoverage(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/nocontent", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 204, resp.StatusCode)
 	})
 
@@ -142,7 +150,8 @@ func TestExtraCoverage(t *testing.T) {
 		app := fiber.New()
 		app.Get("/nodes", companies.GetAll)
 		req := httptest.NewRequest("GET", "/nodes", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		require.Equal(t, 500, resp.StatusCode)
 	})
 }

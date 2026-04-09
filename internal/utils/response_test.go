@@ -22,13 +22,14 @@ func TestResponseSuite(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/test-success", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }() // Handle body close error
 
 		is.Equal(fiber.StatusOK, resp.StatusCode)
 
 		var body types.StandardResponse[map[string]interface{}]
-		err := json.NewDecoder(resp.Body).Decode(&body)
+		err = json.NewDecoder(resp.Body).Decode(&body)
 		require.NoError(t, err, "Gagal decode JSON response")
 
 		is.True(body.Success)
@@ -43,11 +44,12 @@ func TestResponseSuite(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/test-meta", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
 		var body types.StandardResponse[[]string]
-		err := json.NewDecoder(resp.Body).Decode(&body)
+		err = json.NewDecoder(resp.Body).Decode(&body)
 		require.NoError(t, err)
 
 		is.Equal(int64(100), int64(body.Meta.Total))
@@ -60,7 +62,8 @@ func TestResponseSuite(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("DELETE", "/test-nocontent", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
 		is.Equal(fiber.StatusNoContent, resp.StatusCode)
@@ -86,13 +89,14 @@ func TestResponseSuite(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				app.Get(tt.route, tt.handler)
 				req := httptest.NewRequest("GET", tt.route, nil)
-				resp, _ := app.Test(req)
+				resp, err := app.Test(req)
+				require.NoError(t, err)
 				defer func() { _ = resp.Body.Close() }()
 
 				is.Equal(tt.expectCode, resp.StatusCode)
 
 				var body types.StandardResponse[any]
-				err := json.NewDecoder(resp.Body).Decode(&body)
+				err = json.NewDecoder(resp.Body).Decode(&body)
 				require.NoError(t, err)
 				is.False(body.Success)
 				is.Equal(tt.expectMsg, body.Message)

@@ -53,7 +53,8 @@ func (s *AuthServiceTestSuite) TestRegister_Duplicate() {
 	}
 
 	// Register pertama kali
-	_, _ = s.service.Register(ctx, req)
+	_, err := s.service.Register(ctx, req)
+	s.Require().NoError(err)
 
 	s.Run("Duplicate_Email", func() {
 		req2 := *req
@@ -108,12 +109,13 @@ func (s *AuthServiceTestSuite) TestLogin_Flow() {
 
 	s.Run("Inactive_User", func() {
 		// Create inactive user manually in DB
-		_, _ = testDBPool.Exec(ctx,
+		_, err := testDBPool.Exec(ctx,
 			"INSERT INTO users (email, username, password_hash, is_active) VALUES ($1, $2, $3, $4)",
 			"inactive@officecore.id", "inactiveuser", "hash", false)
+		s.Require().NoError(err)
 
 		req := &types.LoginRequest{Email: "inactive@officecore.id", Password: "any"}
-		_, err := s.service.Login(ctx, req)
+		_, err = s.service.Login(ctx, req)
 		s.ErrorIs(err, services.ErrAccountInactive)
 	})
 }
@@ -127,8 +129,9 @@ func (s *AuthServiceTestSuite) TestErrorConstants_Integrity() {
 			Username: "uniqueuser",
 			Password: "Password123!",
 		}
-		_, _ = s.service.Register(ctx, req)
 		_, err := s.service.Register(ctx, req)
+		s.Require().NoError(err)
+		_, err = s.service.Register(ctx, req)
 		s.ErrorIs(err, services.ErrEmailAlreadyExists)
 	})
 }

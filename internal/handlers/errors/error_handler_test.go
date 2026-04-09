@@ -23,7 +23,8 @@ func TestGlobalErrorHandler(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/not-found", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, 404, resp.StatusCode)
@@ -45,7 +46,8 @@ func TestGlobalErrorHandler(t *testing.T) {
 		})
 
 		req := httptest.NewRequest("GET", "/panic", nil)
-		resp, _ := app.Test(req)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, 500, resp.StatusCode)

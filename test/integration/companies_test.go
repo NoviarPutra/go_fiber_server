@@ -34,16 +34,18 @@ func (s *CompaniesIntegrationTestSuite) SetupSuite() {
 	email := "comp-test@officecore.id"
 	pass := "Pass123!"
 
-	_, _ = authSvc.Register(ctx, &types.RegisterRequest{
+	_, err := authSvc.Register(ctx, &types.RegisterRequest{
 		Email:    email,
 		Username: "comptest",
 		Password: pass,
 	})
+	s.Require().NoError(err)
 
-	loginRes, _ := authSvc.Login(ctx, &types.LoginRequest{
+	loginRes, err := authSvc.Login(ctx, &types.LoginRequest{
 		Email:    email,
 		Password: pass,
 	})
+	s.Require().NoError(err)
 	s.token = loginRes.AccessToken
 
 	// Setup routes
@@ -68,7 +70,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 			Name: "Test Company",
 			Code: companyCode,
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("POST", "/api/v1/companies", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -80,7 +83,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		s.Equal(fiber.StatusCreated, resp.StatusCode)
 
 		var result types.StandardResponse[types.CompanyRow]
-		json.NewDecoder(resp.Body).Decode(&result)
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(s.T(), err)
 		companyID = result.Data.ID
 		s.NotEmpty(companyID)
 	})
@@ -90,7 +94,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 			Name: "Duplicate",
 			Code: companyCode,
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("POST", "/api/v1/companies", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -107,7 +112,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 			Name: "", // Required but empty
 			Code: "INVALID",
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("POST", "/api/v1/companies", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -141,7 +147,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		s.Equal(fiber.StatusOK, resp.StatusCode)
 
 		var result types.StandardResponse[types.CompanyRow]
-		json.NewDecoder(resp.Body).Decode(&result)
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(s.T(), err)
 		s.Equal(companyID, result.Data.ID)
 	})
 
@@ -172,7 +179,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		payload := types.UpdateCompanyRequest{
 			Name: ptr(newName),
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("PUT", "/api/v1/companies/"+companyID, bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -184,7 +192,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		s.Equal(fiber.StatusOK, resp.StatusCode)
 
 		var result types.StandardResponse[types.CompanyRow]
-		json.NewDecoder(resp.Body).Decode(&result)
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(s.T(), err)
 		s.Equal(newName, result.Data.Name)
 	})
 
@@ -199,7 +208,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		s.Equal(fiber.StatusOK, resp.StatusCode)
 
 		var result types.StandardResponse[[]types.CompanyRow]
-		json.NewDecoder(resp.Body).Decode(&result)
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(s.T(), err)
 		s.Equal(0, len(result.Data))
 	})
 
@@ -207,7 +217,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		payload := types.UpdateCompanyRequest{
 			Name: ptr("Not Found"),
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("PUT", "/api/v1/companies/00000000-0000-0000-0000-000000000000", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -224,12 +235,15 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		reqC := httptest.NewRequest("POST", "/api/v1/companies", bytes.NewBufferString(`{"name":"Other","code":"OTHER001"}`))
 		reqC.Header.Set("Content-Type", "application/json")
 		reqC.Header.Set("Authorization", "Bearer "+s.token)
-		_, _ = s.app.Test(reqC)
+		respC, err := s.app.Test(reqC)
+		require.NoError(s.T(), err)
+		defer respC.Body.Close()
 
 		payload := types.UpdateCompanyRequest{
 			Code: ptr("OTHER001"),
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("PUT", "/api/v1/companies/"+companyID, bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -245,7 +259,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		payload := types.UpdateCompanyRequest{
 			LogoUrl: ptr("https://new-logo.com"),
 		}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("PUT", "/api/v1/companies/"+companyID, bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -270,7 +285,8 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 
 	s.Run("Update_Company_All_Nil", func() {
 		payload := types.UpdateCompanyRequest{}
-		body, _ := json.Marshal(payload)
+		body, err := json.Marshal(payload)
+		s.Require().NoError(err)
 		req := httptest.NewRequest("PUT", "/api/v1/companies/"+companyID, bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+s.token)
@@ -308,18 +324,24 @@ func (s *CompaniesIntegrationTestSuite) TestCompaniesCRUD() {
 		reqC := httptest.NewRequest("POST", "/api/v1/companies", bytes.NewBufferString("{invalid}"))
 		reqC.Header.Set("Content-Type", "application/json")
 		reqC.Header.Set("Authorization", "Bearer "+s.token)
-		respC, _ := s.app.Test(reqC)
+		respC, err := s.app.Test(reqC)
+		require.NoError(s.T(), err)
+		defer respC.Body.Close()
 		s.Equal(400, respC.StatusCode)
 
 		reqU := httptest.NewRequest("PUT", "/api/v1/companies/"+companyID, bytes.NewBufferString("{invalid}"))
 		reqU.Header.Set("Content-Type", "application/json")
 		reqU.Header.Set("Authorization", "Bearer "+s.token)
-		respU, _ := s.app.Test(reqU)
+		respU, err := s.app.Test(reqU)
+		require.NoError(s.T(), err)
+		defer respU.Body.Close()
 		s.Equal(400, respU.StatusCode)
 
 		reqP := httptest.NewRequest("GET", "/api/v1/companies?page=-1&limit=-5", nil)
 		reqP.Header.Set("Authorization", "Bearer "+s.token)
-		respP, _ := s.app.Test(reqP)
+		respP, err := s.app.Test(reqP)
+		require.NoError(s.T(), err)
+		defer respP.Body.Close()
 		s.Equal(200, respP.StatusCode)
 	})
 }

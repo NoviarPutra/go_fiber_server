@@ -63,7 +63,8 @@ func TestJWTTestSuite(t *testing.T) {
 			},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		expiredToken, _ := token.SignedString(secret)
+		expiredToken, err := token.SignedString(secret)
+		is.NoError(err)
 
 		parsedClaims, err := ParseClaims(expiredToken)
 		is.Error(err)
@@ -74,7 +75,8 @@ func TestJWTTestSuite(t *testing.T) {
 	t.Run("Parse Token with Wrong Signing Method", func(t *testing.T) {
 		claims := &JWTClaims{UserID: userID}
 		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
-		unsignedToken, _ := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+		unsignedToken, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+		is.NoError(err)
 
 		parsedClaims, err := ParseClaims(unsignedToken)
 		is.Error(err)

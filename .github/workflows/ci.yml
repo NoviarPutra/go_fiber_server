@@ -32,10 +32,8 @@ jobs:
         # Memastikan kode bersih sesuai standar golangci-lint
 
       - name: Security Scan (Gosec)
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec ./...
-        # Mencari celah keamanan seperti SQL Injection atau hardcoded credentials
+        run: make security
+        # Memastikan tidak ada celah keamanan (SQL Injection, dll) via target Makefile
 
   integration-test:
     name: Bullet-Proof Testing

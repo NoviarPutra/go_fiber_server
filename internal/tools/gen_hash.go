@@ -8,7 +8,9 @@ import (
 
 func main() {
 	password := "superadmin123"
-	hash, _ := utils.HashPassword(password)
-	fmt.Println("Gunakan hash ini di SQL:")
-	fmt.Println(hash)
+	hash, err := utils.HashPassword(password)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Gunakan hash ini di SQL:\n%s\n", hash)
 }
