@@ -14,6 +14,9 @@ var testDBPool *pgxpool.Pool
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
+	// Set environment variables for tests
+	os.Setenv("JWT_SECRET", "test-secret-key-12345")
+
 	// Setup database satu kali untuk semua file di package ini
 	pool, cleanup := SetupTestContainer(ctx)
 	testDBPool = pool

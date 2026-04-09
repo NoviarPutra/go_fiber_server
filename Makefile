@@ -157,6 +157,16 @@ lint:
 	$$LINT_PATH run
 	@echo "✅ Lint complete"
 
+security:
+	@echo "🛡️  Running security scan (gosec)..."
+	@export PATH="/opt/homebrew/bin:/usr/local/go/bin:$(HOME)/go/bin:$$PATH"; \
+	if ! command -v gosec > /dev/null; then \
+		echo "⚠️  gosec tidak ditemukan. Installing..."; \
+		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
+	fi; \
+	gosec -exclude-dir=.go_cache ./...
+	@echo "✅ Security scan complete"
+
 # ─── Docker ───────────────────────────────────────────────────────────────────
 docker-build:
 	@echo "🐳 Building Docker image..."
@@ -210,5 +220,6 @@ help:
 	@echo "  🛠️  Code Quality"
 	@echo "    make fmt                            Format code"
 	@echo "    make lint                           Lint (requires golangci-lint)"
+	@echo "    make security                       Security scan with gosec"
 	@echo "    make vet                            Run go vet"
 	@echo ""

@@ -56,6 +56,10 @@ func NotFound(c *fiber.Ctx, msg string) error {
 	return ErrorResponse(c, fiber.StatusNotFound, msg)
 }
 
+func Conflict(c *fiber.Ctx, msg string) error {
+	return ErrorResponse(c, fiber.StatusConflict, msg)
+}
+
 func InternalError(c *fiber.Ctx, msg string) error {
 	return ErrorResponse(c, fiber.StatusInternalServerError, msg)
 }

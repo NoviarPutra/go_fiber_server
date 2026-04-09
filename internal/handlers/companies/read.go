@@ -18,7 +18,10 @@ func GetAll(c *fiber.Ctx) error {
 		per_page = 10
 	}
 
-	db := c.Locals("db").(*pgxpool.Pool)
+	db, ok := c.Locals("db").(*pgxpool.Pool)
+	if !ok {
+		return utils.InternalError(c, "database connection not found")
+	}
 	svc := services.NewCompaniesService(db)
 
 	companies, total, err := svc.GetAll(c.Context(), page, per_page)

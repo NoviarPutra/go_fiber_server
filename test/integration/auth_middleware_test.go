@@ -36,7 +36,8 @@ func (s *AuthMiddlewareTestSuite) SetupTest() {
 // Helper untuk membuat token manual untuk keperluan testing
 func (s *AuthMiddlewareTestSuite) createTestToken(claims jwt.MapClaims, secret string) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	t, _ := token.SignedString([]byte(secret))
+	t, err := token.SignedString([]byte(secret))
+	s.Require().NoError(err)
 	return t
 }
 
@@ -52,13 +53,17 @@ func (s *AuthMiddlewareTestSuite) TestProtected_Success() {
 	req := httptest.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	resp, _ := s.app.Test(req)
+	resp, err := s.app.Test(req)
+	s.Require().NoError(err)
+	defer resp.Body.Close()
 	s.Equal(200, resp.StatusCode)
 }
 
 func (s *AuthMiddlewareTestSuite) TestProtected_MissingToken() {
 	req := httptest.NewRequest("GET", "/protected", nil)
-	resp, _ := s.app.Test(req)
+	resp, err := s.app.Test(req)
+	s.Require().NoError(err)
+	defer resp.Body.Close()
 
 	s.Equal(401, resp.StatusCode)
 	// Pastikan pesan error sesuai dengan jwt_error_handler

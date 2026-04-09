@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -45,5 +44,5 @@ func ConnectDB() {
 	DB = pool
 
 	stats := pool.Stat()
-	fmt.Printf("✅ Database Postgres Terkoneksi | Pool: %d conns\n", stats.TotalConns())
+	log.Printf("✅ Database Postgres Terkoneksi | Pool: %d conns\n", stats.TotalConns()) // #nosec G706
 }

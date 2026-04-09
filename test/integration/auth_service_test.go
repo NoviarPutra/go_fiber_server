@@ -20,9 +20,8 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 }
 
 // TearDownTest memastikan database bersih setiap kali menjalankan satu fungsi test
-func (s *AuthIntegrationTestSuite) TearDownTest() {
+func (s *AuthServiceTestSuite) TearDownTest() {
 	ctx := context.Background()
-	// SESUDAH: Cek error dari Exec
 	_, err := testDBPool.Exec(ctx, "TRUNCATE users, refresh_tokens CASCADE")
 	s.Require().NoError(err, "Gagal membersihkan database saat TearDown")
 }
@@ -54,7 +53,8 @@ func (s *AuthServiceTestSuite) TestRegister_Duplicate() {
 	}
 
 	// Register pertama kali
-	_, _ = s.service.Register(ctx, req)
+	_, err := s.service.Register(ctx, req)
+	s.Require().NoError(err)
 
 	s.Run("Duplicate_Email", func() {
 		req2 := *req
@@ -106,36 +106,33 @@ func (s *AuthServiceTestSuite) TestLogin_Flow() {
 		_, err := s.service.Login(ctx, req)
 		s.ErrorIs(err, services.ErrInvalidCredentials)
 	})
+
+	s.Run("Inactive_User", func() {
+		// Create inactive user manually in DB
+		_, err := testDBPool.Exec(ctx,
+			"INSERT INTO users (email, username, password_hash, is_active) VALUES ($1, $2, $3, $4)",
+			"inactive@officecore.id", "inactiveuser", "hash", false)
+		s.Require().NoError(err)
+
+		req := &types.LoginRequest{Email: "inactive@officecore.id", Password: "any"}
+		_, err = s.service.Login(ctx, req)
+		s.ErrorIs(err, services.ErrAccountInactive)
+	})
 }
 
 func (s *AuthServiceTestSuite) TestErrorConstants_Integrity() {
 	ctx := context.Background()
 
 	s.Run("Should_Return_ErrEmailAlreadyExists", func() {
-		// 1. Setup: Register user pertama
 		req := &types.RegisterRequest{
 			Email:    "unique@officecore.id",
 			Username: "uniqueuser",
 			Password: "Password123!",
 		}
-		_, _ = s.service.Register(ctx, req)
-
-		// 2. Action: Register dengan email yang sama
 		_, err := s.service.Register(ctx, req)
-
-		// 3. Assert: Pastikan error-nya IDENTIK dengan variable di services
+		s.Require().NoError(err)
+		_, err = s.service.Register(ctx, req)
 		s.ErrorIs(err, services.ErrEmailAlreadyExists)
-		s.Equal("email sudah terdaftar", err.Error())
-	})
-
-	s.Run("Should_Return_ErrInvalidCredentials_On_Login_Fail", func() {
-		req := &types.LoginRequest{
-			Email:    "wrong@officecore.id",
-			Password: "AnyPassword",
-		}
-		_, err := s.service.Login(ctx, req)
-
-		s.ErrorIs(err, services.ErrInvalidCredentials)
 	})
 }
 

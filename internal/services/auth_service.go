@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -162,6 +163,6 @@ func (s *AuthService) update_last_login(ctx context.Context, user_id string) {
 
 	if err != nil {
 		// Log saja, jangan return error karena ini non-critical
-		fmt.Printf("Warning: gagal update last_login untuk user %s: %v\n", user_id, err)
+		log.Printf("Warning: gagal update last_login untuk user %s: %v\n", user_id, err)
 	}
 }
