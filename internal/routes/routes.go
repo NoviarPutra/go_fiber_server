@@ -9,6 +9,7 @@ import (
 	"github.com/yourusername/go_server/internal/handlers/company_branches"
 	"github.com/yourusername/go_server/internal/handlers/health"
 	"github.com/yourusername/go_server/internal/handlers/users"
+	"github.com/yourusername/go_server/internal/handlers/user_devices"
 	"github.com/yourusername/go_server/internal/middlewares"
 	"github.com/yourusername/go_server/internal/utils"
 )
@@ -54,6 +55,13 @@ func SetupRoutes(app *fiber.App) {
 	audit_group := api.Group("/audit-logs")
 	audit_group.Get("/", middlewares.Protected(), middlewares.Pagination, audit_logs.GetAll)
 	audit_group.Get("/:id", middlewares.Protected(), audit_logs.GetByID)
+
+	// User Devices (private)
+	device_group := api.Group("/user-devices")
+	device_group.Get("/", middlewares.Protected(), user_devices.List)
+	device_group.Post("/", middlewares.Protected(), user_devices.Register)
+	device_group.Post("/:id/revoke", middlewares.Protected(), user_devices.Revoke)
+	device_group.Patch("/:id/push-token", middlewares.Protected(), user_devices.UpdatePushToken)
 
 	// 404
 	app.Use(not_found)
