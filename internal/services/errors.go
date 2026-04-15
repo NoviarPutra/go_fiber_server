@@ -19,4 +19,7 @@ var (
 	ErrCompanyBranchNameExists = errors.New("nama cabang sudah digunakan di perusahaan ini")
 
 	ErrAuditLogNotFound = errors.New("audit log tidak ditemukan")
+
+	ErrDeviceNotFound       = errors.New("perangkat tidak ditemukan")
+	ErrDeviceAlreadyRevoked = errors.New("perangkat sudah tidak aktif")
 )
