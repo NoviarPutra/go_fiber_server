@@ -99,6 +99,29 @@ Struktur kode ini menerapkan konsep *Bullet-Proof* atau tak-tertembus. Anda dapa
 
 ---
 
+## ⚖️ Docker vs Tanpa Docker (Pros & Cons)
+
+Tim bebas mengadopsi lingkungan mereka sendiri. Berikut bahan pertimbangan untuk menentukan alur mana yang lebih cocok untuk Anda:
+
+### 🟢 Menggunakan Docker (Direkomendasikan)
+Cocok untuk lingkungan tim kolaboratif dan standar industri:
+* **Positif (+):** 
+  * *Zero-Config Setup*: Tidak perlu mengotori sistem mac/windows Anda dengan instalasi database yang berat.
+  * *Lingkungan Identik*: Semua *developer* di tim memiliki spesifikasi Postgres yang sama tanpa takut bentrok versi.
+  * **Akses Penuh Fitur Testing**: Bisa menjalankan `make test-cover` secara utuh karena *Testcontainers* mensyaratkan ketersediaan daemon Docker untuk membuang dan membangun container uji secara *on-the-fly*.
+* **Negatif (-):**
+  * Memakan lebih banyak *RAM* (karena overhead visualisasi mesin/Container).
+
+### 🟠 Tanpa Docker (Local Native)
+Cocok jika laptop Anda memiliki sumber daya *Low-End/Memori terbatas* atau tidak punya izin akses Root/Admin:
+* **Positif (+):**
+  * *Performa Super Cepat & Ringan*: Mengetik dan mengeksekusi aplikasi jauh lebih ringan pada memori komputer karena koneksi database *native* secara langsung (tanpa melintasi *virtual network layer*).
+  * Nyaman jika Anda sudah sangat familiar dengan *pgAdmin / DBeaver*.
+* **Negatif (-):**
+  * **Tidak Bisa Menjalankan Testcontainers**: Fitur `make test-cover` akan langsung Error ("*Docker not found*"). Anda harus mengakalinya secara repot dengan melakukan sinkronisasi database manual khusus testing dan melakukan *Truncate Table* setiap kali sebelum perintah tes di-klik.
+
+---
+
 ## 📁 Struktur Direktori Singkat
 
 Arsitektur kita yang berbasis `Clean Architecture` sangat tegas memisahkan logika lalu lintas agar sistem tidak berantakan:
