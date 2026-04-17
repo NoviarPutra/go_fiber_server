@@ -30,6 +30,8 @@ func SetupRoutes(app *fiber.App) {
 	auth_group := api.Group("/auth")
 	auth_group.Post("/register", auth.Register)
 	auth_group.Post("/login", auth.Login)
+	auth_group.Post("/refresh", auth.Refresh)
+	auth_group.Post("/revoke", auth.Revoke)
 
 	// Users (private)
 	users_group := api.Group("/users")

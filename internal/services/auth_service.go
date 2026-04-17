@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yourusername/go_server/internal/types"
 	"github.com/yourusername/go_server/internal/utils"
@@ -106,13 +107,111 @@ func (s *AuthService) Login(ctx context.Context, req *types.LoginRequest) (*type
 	}
 
 	// 5. Update last_login_at — tidak pakai goroutine, sudah ada timeout sendiri
-	s.update_last_login(ctx, user.id)
+	s.UpdateLastLogin(ctx, user.id)
 
 	return &types.LoginResponse{
 		AccessToken:  access_token,
 		RefreshToken: refresh_token,
-		ExpiresIn:    int64(utils.AccessTokenExpiry.Seconds()), // ✅ pakai konstanta exported
+		ExpiresIn:    int64(utils.AccessTokenExpiry.Seconds()),
 	}, nil
+}
+
+// ─── Refresh Token ────────────────────────────────────────────────────────────
+
+func (s *AuthService) Refresh(ctx context.Context, refresh_token string) (*types.LoginResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("gagal memulai transaksi")
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// 1. Validasi token dan ambil data user (di dalam TX)
+	var userIDStr, oldTokenIDStr string
+	var email string
+	err = tx.QueryRow(ctx,
+		`SELECT rt.id::text, rt.user_id::text, u.email
+		 FROM refresh_tokens rt
+		 JOIN users u ON u.id = rt.user_id
+		 WHERE rt.token = $1 
+		   AND rt.revoked_at IS NULL 
+		   AND rt.expires_at > NOW()
+		   AND u.deleted_at IS NULL 
+		   AND u.is_active = true`,
+		refresh_token,
+	).Scan(&oldTokenIDStr, &userIDStr, &email)
+
+	if err != nil {
+		return nil, ErrRefreshTokenInvalid
+	}
+
+	// 2. Generate token baru
+	new_access_token, err := utils.GenerateAccessToken(userIDStr, email)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membuat access token: %w", err)
+	}
+
+	new_refresh_token, expires_at, err := utils.GenerateRefreshToken(userIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membuat refresh token: %w", err)
+	}
+
+	// 3. Simpan token baru
+	newTokenID := uuid.New().String()
+	_, err = tx.Exec(ctx,
+		`INSERT INTO refresh_tokens (id, user_id, token, expires_at)
+		 VALUES ($1::uuid, $2::uuid, $3, $4)`,
+		newTokenID, userIDStr, new_refresh_token, expires_at,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menyimpan refresh token baru: %w", err)
+	}
+
+	// 4. Revoke yang lama
+	_, err = tx.Exec(ctx,
+		`UPDATE refresh_tokens 
+		 SET revoked_at = NOW(), replaced_by = $1::uuid
+		 WHERE id = $2::uuid`,
+		newTokenID, oldTokenIDStr,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mencabut refresh token lama: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("gagal commit transaksi")
+	}
+
+	return &types.LoginResponse{
+		AccessToken:  new_access_token,
+		RefreshToken: new_refresh_token,
+		ExpiresIn:    int64(utils.AccessTokenExpiry.Seconds()),
+	}, nil
+}
+
+// ─── Revoke Token ─────────────────────────────────────────────────────────────
+
+func (s *AuthService) Revoke(ctx context.Context, refresh_token string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	result, err := s.db.Exec(ctx,
+		`UPDATE refresh_tokens 
+		 SET revoked_at = NOW() 
+		 WHERE token = $1 AND revoked_at IS NULL`,
+		refresh_token,
+	)
+	if err != nil {
+		return fmt.Errorf("gagal mencabut token")
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrRefreshTokenInvalid
+	}
+
+	return nil
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -141,19 +240,20 @@ func (s *AuthService) find_user_by_email(ctx context.Context, email string) (*us
 	return &u, nil
 }
 
-func (s *AuthService) save_refresh_token(ctx context.Context, user_id, token string, expires_at time.Time) error {
+func (s *AuthService) save_refresh_token(ctx context.Context, user_id string, token string, expires_at time.Time) error {
+	id := uuid.New()
 	_, err := s.db.Exec(ctx,
-		`INSERT INTO refresh_tokens (user_id, token, expires_at)
-		 VALUES ($1, $2, $3)`,
-		user_id, token, expires_at,
+		`INSERT INTO refresh_tokens (id, user_id, token, expires_at)
+		 VALUES ($1, $2, $3, $4)`,
+		id, user_id, token, expires_at,
 	)
 	if err != nil {
-		return fmt.Errorf("gagal menyimpan sesi login")
+		return fmt.Errorf("gagal menyimpan refresh token: %w", err)
 	}
 	return nil
 }
 
-func (s *AuthService) update_last_login(ctx context.Context, user_id string) {
+func (s *AuthService) UpdateLastLogin(ctx context.Context, user_id string) {
 	// Gunakan _ untuk memberitahu linter bahwa kita sadar ada error tapi memilih mengabaikannya
 	// Namun, sangat disarankan untuk setidaknya log jika terjadi error
 	_, err := s.db.Exec(ctx,

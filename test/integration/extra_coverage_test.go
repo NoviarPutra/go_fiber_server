@@ -1,12 +1,14 @@
 package integration
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/yourusername/go_server/internal/handlers/companies"
+	"github.com/yourusername/go_server/internal/services"
 	"github.com/yourusername/go_server/internal/types"
 	"github.com/yourusername/go_server/internal/utils"
 )
@@ -153,5 +155,14 @@ func TestExtraCoverage(t *testing.T) {
 		resp, err := app.Test(req)
 		require.NoError(t, err)
 		require.Equal(t, 500, resp.StatusCode)
+	})
+
+	t.Run("UpdateLastLogin_Error_Branch", func(t *testing.T) {
+		// This uses a canceled context to trigger the error branch in UpdateLastLogin
+		// since it doesn't return an error but logs it.
+		authSvc := services.NewAuthService(testDBPool)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		authSvc.UpdateLastLogin(ctx, "invalid-uuid")
 	})
 }

@@ -7,6 +7,7 @@ import (
 
 	github_com_gofiber_fiber_v2 "github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 const (
@@ -59,6 +60,7 @@ func GenerateRefreshToken(user_id string) (string, time.Time, error) {
 		ExpiresAt: jwt.NewNumericDate(expires_at),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		Subject:   user_id,
+		ID:        uuid.New().String(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

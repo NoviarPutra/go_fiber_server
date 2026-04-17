@@ -10,3 +10,11 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int64  `json:"expires_in"`
 }
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type RevokeTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}

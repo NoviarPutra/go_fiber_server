@@ -112,6 +112,30 @@ func (s *AuditLogsIntegrationTestSuite) Test2_GetAllLogs() {
 	s.Equal("UPDATE", firstLog["action"])
 	s.Equal("companies", firstLog["table_name"])
 	s.Equal("127.0.0.1", firstLog["ip_address"])
+
+	// Test more filters for coverage
+	logRecID := firstLog["record_id"].(string)
+	
+	// Filter by RecordID
+	req2 := httptest.NewRequest("GET", "/api/v1/audit-logs?record_id="+logRecID, nil)
+	req2.Header.Set("Authorization", "Bearer "+s.token)
+	resp2, _ := s.app.Test(req2, -1)
+	s.Equal(200, resp2.StatusCode)
+	resp2.Body.Close()
+	
+	// Filter by UserID
+	req3 := httptest.NewRequest("GET", "/api/v1/audit-logs?user_id="+s.userID, nil)
+	req3.Header.Set("Authorization", "Bearer "+s.token)
+	resp3, _ := s.app.Test(req3, -1)
+	s.Equal(200, resp3.StatusCode)
+	resp3.Body.Close()
+
+	// Filter by CompanyID
+	req4 := httptest.NewRequest("GET", "/api/v1/audit-logs?company_id="+s.companyID, nil)
+	req4.Header.Set("Authorization", "Bearer "+s.token)
+	resp4, _ := s.app.Test(req4, -1)
+	s.Equal(200, resp4.StatusCode)
+	resp4.Body.Close()
 }
 
 func (s *AuditLogsIntegrationTestSuite) Test3_GetLogByID() {

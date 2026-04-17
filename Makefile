@@ -74,12 +74,12 @@ test:
 test-integration: export APP_ENV = testing
 test-integration:
 	@echo "🧪 Running integration tests only..."
-	@go test -v -race ./tests/integration/...
+	@go test -v -race ./test/integration/...
 
 test-unit: export APP_ENV = testing
 test-unit:
 	@echo "🧪 Running unit tests only..."
-	@go test -v -race ./tests/unit/...
+	@go test -v -race ./test/unit/...
 
 test-cover: export APP_ENV = testing
 test-cover:
