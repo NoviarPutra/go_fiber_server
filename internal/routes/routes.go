@@ -7,6 +7,7 @@ import (
 	"github.com/yourusername/go_server/internal/handlers/base"
 	"github.com/yourusername/go_server/internal/handlers/companies"
 	"github.com/yourusername/go_server/internal/handlers/company_branches"
+	"github.com/yourusername/go_server/internal/handlers/company_users"
 	"github.com/yourusername/go_server/internal/handlers/health"
 	"github.com/yourusername/go_server/internal/handlers/user_devices"
 	"github.com/yourusername/go_server/internal/handlers/users"
@@ -44,6 +45,14 @@ func SetupRoutes(app *fiber.App) {
 	companies_group.Get("/:id", middlewares.Protected(), companies.GetByID)
 	companies_group.Put("/:id", middlewares.Protected(), companies.Update)
 	companies_group.Delete("/:id", middlewares.Protected(), companies.Delete)
+
+	// Company Users (nested)
+	cu_group := api.Group("/companies/:company_id/users", middlewares.Protected())
+	cu_group.Post("/", company_users.Add)
+	cu_group.Get("/", middlewares.Pagination, company_users.List)
+	cu_group.Get("/:user_id", company_users.Get)
+	cu_group.Put("/:user_id", company_users.Update)
+	cu_group.Delete("/:user_id", company_users.Remove)
 
 	// Company Branches (private)
 	branches_group := api.Group("/company-branches")

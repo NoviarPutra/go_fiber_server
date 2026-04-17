@@ -22,4 +22,7 @@ var (
 
 	ErrDeviceNotFound       = errors.New("perangkat tidak ditemukan")
 	ErrDeviceAlreadyRevoked = errors.New("perangkat sudah tidak aktif")
+
+	ErrCompanyUserNotFound      = errors.New("user perusahaan tidak ditemukan")
+	ErrCompanyUserAlreadyExists = errors.New("user sudah terdaftar di perusahaan ini")
 )
