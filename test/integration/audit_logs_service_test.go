@@ -56,17 +56,17 @@ func (s *AuditLogsIntegrationTestSuite) SetupSuite() {
 	compSvc := services.NewCompaniesService(s.pool)
 	code := "AUDIT_CO"
 	_ = compSvc.Delete(ctx, code) // Clean up incase
-	
+
 	comp, err := compSvc.Create(ctx, types.CreateCompanyRequest{
-		Name:    "Audit Company",
-		Code:    "AUDITCO",
+		Name: "Audit Company",
+		Code: "AUDITCO",
 	})
 	s.Require().NoError(err)
 	s.companyID = comp.ID
 
 	api := s.app.Group("/api/v1")
 	api.Use(middlewares.DBMiddleware(s.pool))
-	
+
 	audit_group := api.Group("/audit-logs")
 	audit_group.Get("/", middlewares.Protected(), middlewares.Pagination, audit_logs.GetAll)
 	audit_group.Get("/:id", middlewares.Protected(), audit_logs.GetByID)
@@ -115,14 +115,14 @@ func (s *AuditLogsIntegrationTestSuite) Test2_GetAllLogs() {
 
 	// Test more filters for coverage
 	logRecID := firstLog["record_id"].(string)
-	
+
 	// Filter by RecordID
 	req2 := httptest.NewRequest("GET", "/api/v1/audit-logs?record_id="+logRecID, nil)
 	req2.Header.Set("Authorization", "Bearer "+s.token)
 	resp2, _ := s.app.Test(req2, -1)
 	s.Equal(200, resp2.StatusCode)
 	resp2.Body.Close()
-	
+
 	// Filter by UserID
 	req3 := httptest.NewRequest("GET", "/api/v1/audit-logs?user_id="+s.userID, nil)
 	req3.Header.Set("Authorization", "Bearer "+s.token)

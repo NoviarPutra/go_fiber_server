@@ -23,7 +23,7 @@ func (s *AuditLogsService) GetAll(ctx context.Context, q types.AuditLogQuery, pa
 	defer cancel()
 
 	offset := (page - 1) * perPage
-	
+
 	// Base Query
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}

@@ -2,14 +2,14 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yourusername/go_server/internal/handlers/auth"
 	"github.com/yourusername/go_server/internal/handlers/audit_logs"
+	"github.com/yourusername/go_server/internal/handlers/auth"
 	"github.com/yourusername/go_server/internal/handlers/base"
 	"github.com/yourusername/go_server/internal/handlers/companies"
 	"github.com/yourusername/go_server/internal/handlers/company_branches"
 	"github.com/yourusername/go_server/internal/handlers/health"
-	"github.com/yourusername/go_server/internal/handlers/users"
 	"github.com/yourusername/go_server/internal/handlers/user_devices"
+	"github.com/yourusername/go_server/internal/handlers/users"
 	"github.com/yourusername/go_server/internal/middlewares"
 	"github.com/yourusername/go_server/internal/utils"
 )

@@ -143,8 +143,14 @@ clean:
 	@echo "✅ Clean complete"
 
 fmt:
-	@echo "✨ Formatting code..."
+	@echo "✨ Formatting Go code..."
 	@go fmt ./...
+	@echo "✨ Formatting YAML, JSON, and Markdown with Prettier..."
+	@if command -v npx > /dev/null; then \
+		npx prettier --write "**/*.{json,yml,yaml,md}"; \
+	else \
+		echo "⚠️  npx tidak ditemukan. Lewati format Prettier. (Install Node.js jika butuh formatter non-Go)"; \
+	fi
 	@echo "✅ Format complete"
 
 lint:

@@ -29,7 +29,7 @@ func (s *CorsMiddlewareTestSuite) TestCors_Development_Mode() {
 
 	resp, _ := app.Test(req)
 
-	// 3. Assert: Di dev mode dengan auth cookies (AllowCredentials: true), 
+	// 3. Assert: Di dev mode dengan auth cookies (AllowCredentials: true),
 	// wildcard "*" sudah tidak diizinkan. Origin yang didukung direflect langsung.
 	s.Equal(200, resp.StatusCode)
 	s.Equal("http://localhost:3000", resp.Header.Get("Access-Control-Allow-Origin"))

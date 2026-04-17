@@ -90,7 +90,7 @@ func (s *AuthIntegrationTestSuite) TestAuthFlow() {
 
 		s.True(result.Success)
 		s.Empty(result.Data["access_token"], "Access token should not be in body")
-		
+
 		// Verifikasi cookie
 		var tokenFound bool
 		for _, c := range resp.Cookies() {

@@ -22,8 +22,8 @@ func Protected() fiber.Handler {
 		},
 		ContextKey: "user_auth",
 		// Support both Header and Cookie
-		TokenLookup: "header:Authorization,cookie:" + utils.CookieAccessToken,
-		AuthScheme:  "Bearer",
+		TokenLookup:  "header:Authorization,cookie:" + utils.CookieAccessToken,
+		AuthScheme:   "Bearer",
 		ErrorHandler: jwt_error_handler,
 	})
 }

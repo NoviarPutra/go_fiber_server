@@ -116,7 +116,7 @@ func (s *UserDevicesIntegrationTestSuite) TestUserDevicesFlow() {
 
 	s.Run("Register_Device_Validation_Error", func() {
 		payload := types.RegisterDeviceRequest{
-			DeviceName: "", // Required
+			DeviceName: "",             // Required
 			DeviceType: "invalid_type", // oneof=ios android web
 		}
 		body, err := json.Marshal(payload)
@@ -214,7 +214,7 @@ func (s *UserDevicesIntegrationTestSuite) TestUserDevicesFlow() {
 		var resultList types.StandardResponse[[]types.UserDeviceRow]
 		err = json.NewDecoder(respList.Body).Decode(&resultList)
 		s.Require().NoError(err)
-		
+
 		found := false
 		for _, d := range resultList.Data {
 			if d.ID == deviceID {

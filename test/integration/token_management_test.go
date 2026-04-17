@@ -24,7 +24,7 @@ type TokenManagementTestSuite struct {
 func (s *TokenManagementTestSuite) SetupSuite() {
 	s.app = fiber.New()
 	s.app.Use(middlewares.DBMiddleware(testDBPool))
-	
+
 	auth_group := s.app.Group("/api/v1/auth")
 	auth_group.Post("/login", auth.Login)
 	auth_group.Post("/refresh", auth.Refresh)
@@ -54,14 +54,14 @@ func (s *TokenManagementTestSuite) login(email, password string) *types.LoginRes
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, _ := s.app.Test(req, 10000)
 	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	s.Require().NoError(err)
-	
+
 	data, ok := result["data"].(map[string]interface{})
 	s.Require().True(ok, "Format data response tidak sesuai: %v", result)
 
@@ -96,20 +96,20 @@ func (s *TokenManagementTestSuite) TestRefresh_Success() {
 	// Use Cookie instead of body
 	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
 	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
-	
+
 	// Wait a bit to ensure tokens differ (uuid/jti handles this now but good practice)
 	time.Sleep(100 * time.Millisecond)
-	
+
 	resp, err := s.app.Test(req, 5000)
 	s.NoError(err)
 	defer resp.Body.Close()
 
 	s.Equal(200, resp.StatusCode)
-	
+
 	var res map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&res)
 	s.Require().NoError(err)
-	
+
 	data, ok := res["data"].(map[string]interface{})
 	s.Require().True(ok, "Format data response tidak sesuai: %v", res)
 
@@ -182,7 +182,7 @@ func (s *TokenManagementTestSuite) TestRevoke_Success() {
 	// Revoke with cookie
 	req := httptest.NewRequest("POST", "/api/v1/auth/revoke", nil)
 	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
-	
+
 	resp, err := s.app.Test(req, 5000)
 	s.NoError(err)
 	defer resp.Body.Close()
@@ -209,7 +209,7 @@ func (s *TokenManagementTestSuite) TestRevoke_Success() {
 func (s *TokenManagementTestSuite) TestRefresh_InvalidToken() {
 	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
 	req.Header.Set("Cookie", utils.CookieRefreshToken+"=invalid-token")
-	
+
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode)
 	resp.Body.Close()
@@ -226,7 +226,7 @@ func (s *TokenManagementTestSuite) TestRefresh_InactiveUser() {
 
 	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
 	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
-	
+
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode, "Should fail if user is no longer active")
 	resp.Body.Close()
@@ -260,14 +260,14 @@ func (s *TokenManagementTestSuite) TestRefresh_ExpiredToken() {
 	loginResp := s.login(email, pass)
 
 	// Manually expire the token in DB
-	_, err := testDBPool.Exec(context.Background(), 
-		"UPDATE refresh_tokens SET expires_at = NOW() - INTERVAL '1 hour' WHERE token = $1", 
+	_, err := testDBPool.Exec(context.Background(),
+		"UPDATE refresh_tokens SET expires_at = NOW() - INTERVAL '1 hour' WHERE token = $1",
 		loginResp.RefreshToken)
 	s.Require().NoError(err)
 
 	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
 	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
-	
+
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode, "Should fail if token is expired")
 	resp.Body.Close()

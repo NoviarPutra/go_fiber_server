@@ -27,7 +27,7 @@ func (s *UserDevicesService) RegisterDevice(ctx context.Context, userID string, 
 	// Upsert berdasarkan user_id dan device_name jika belum di-revoke
 	// Atau jika push_token diberikan, kita bisa pakai itu sebagai identifier unik jika perlu
 	// Tapi migration hanya kasih unique index di push_token WHERE revoked_at IS NULL
-	
+
 	query := `
 		INSERT INTO user_devices (user_id, device_name, device_type, os, push_token, is_online, last_active)
 		VALUES ($1, $2, $3, $4, $5, true, now())

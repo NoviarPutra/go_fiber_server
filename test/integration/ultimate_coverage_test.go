@@ -14,7 +14,6 @@ import (
 	"github.com/yourusername/go_server/internal/utils"
 )
 
-
 func TestUltimateCoverage(t *testing.T) {
 	t.Run("GlobalErrorHandler_StackTrace_Branch", func(t *testing.T) {
 		app := fiber.New()

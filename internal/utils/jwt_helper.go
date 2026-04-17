@@ -37,7 +37,7 @@ func SetAuthCookies(c *github_com_gofiber_fiber_v2.Ctx, accessToken, refreshToke
 		Expires:  time.Now().Add(RefreshTokenExpiry),
 		HTTPOnly: true,
 		Secure:   isProd,
-		SameSite: "Strict", // Strict for refresh token rotation as it's sensitive
+		SameSite: "Strict",       // Strict for refresh token rotation as it's sensitive
 		Path:     "/api/v1/auth", // Restricted scope
 	})
 }

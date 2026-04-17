@@ -26,8 +26,8 @@ func TestMain(m *testing.M) {
 	cleanup()
 
 	// Explicitly exit with error code if tests fail, but do not exit if success.
-	// Actually, Go 1.15+ testing generates a main that uses os.Exit(m.Run()), 
-	// but if we return, it automatically passes the exit code. We should just 
+	// Actually, Go 1.15+ testing generates a main that uses os.Exit(m.Run()),
+	// but if we return, it automatically passes the exit code. We should just
 	// set os.Exit(code) only if code != 0, to let defer run for success.
 	// Wait, TestMain return is implicitly handled? Yes!
 	if code != 0 {
