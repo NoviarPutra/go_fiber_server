@@ -36,9 +36,12 @@ func Refresh(c *fiber.Ctx) error {
 	// 2. Update cookies baru
 	utils.SetAuthCookies(c, resp.AccessToken, resp.RefreshToken)
 
-	// Hilangkan token dari body agar tidak bisa dibaca JavaScript (Bullet-Proof)
-	resp.AccessToken = ""
-	resp.RefreshToken = ""
+	// Hilangkan token dari body untuk Web (mencegah XSS - dibaca JS).
+	// Berikan lewat body jika origin adalah Mobile App.
+	if c.Get("X-Client-Type") != "mobile" {
+		resp.AccessToken = ""
+		resp.RefreshToken = ""
+	}
 
 	return utils.Success(c, resp, "Token berhasil diperbarui")
 }

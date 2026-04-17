@@ -130,6 +130,26 @@ func (s *TokenManagementTestSuite) TestRefresh_Success() {
 	s.NotEmpty(newAccessToken, "Access token harus ada di cookie")
 	s.NotEmpty(newRefreshToken, "Refresh token harus ada di cookie")
 	s.NotEqual(loginResp.RefreshToken, newRefreshToken, "Refresh token harus di-rotate")
+
+	// ----------------------------------------------------
+	// Coverage untuk Mobile
+	// ----------------------------------------------------
+	reqMobile := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	reqMobile.Header.Set("Cookie", utils.CookieRefreshToken+"="+newRefreshToken) // pakai token baru
+	reqMobile.Header.Set("X-Client-Type", "mobile")
+
+	respMobile, _ := s.app.Test(reqMobile, 5000)
+	s.Equal(200, respMobile.StatusCode)
+
+	var resMobile map[string]interface{}
+	err = json.NewDecoder(respMobile.Body).Decode(&resMobile)
+	s.NoError(err)
+	respMobile.Body.Close()
+
+	dataMobile, ok := resMobile["data"].(map[string]interface{})
+	s.True(ok)
+	s.NotEmpty(dataMobile["access_token"], "Access Token Refresh harus dikembalikan pada response JSON untuk Mobile Client")
+	s.NotEmpty(dataMobile["refresh_token"], "Refresh Token Refresh harus dikembalikan pada response JSON untuk Mobile Client")
 }
 
 func (s *TokenManagementTestSuite) TestRefresh_RotateAndRevokeOld() {
