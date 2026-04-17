@@ -1,145 +1,119 @@
-# go_server
+# 🚀 Backend Core Server (Go Fiber + PostgreSQL)
 
-Production-ready REST API built with **Go Fiber**, **PostgreSQL (Raw SQL)**, dan **pgxpool**. Mengikuti prinsip **Clean Architecture** untuk skalabilitas dan kemudahan pengujian.
-
----
-
-## 🚀 Fitur & Keunggulan
-
-- **Security First**: Menggunakan Raw SQL dengan *prepared statements* (mencegah SQL Injection).
-- **Password Hashing**: Menggunakan **Argon2id** (lebih aman dari bcrypt).
-- **Security Audit**: Integrasi **gosec** untuk pemindaian kerentanan kode secara otomatis.
-- **Robust Testing**: Integration tests menggunakan **Testcontainers** (Docker-based) untuk database yang terisolasi.
-- **Strict Layering**: Pemisahan logika yang jelas antara `handlers`, `services`, dan `types` di dalam direktori `internal/`.
+Selamat datang di repositori Backend Core Server! 
+Proyek ini dibangun menggunakan **Go Fiber** yang super cepat dan **PostgreSQL (pgxpool)**. Arsitekturnya dirancang menggunakan **Clean Architecture** berlapis yang **sangat mudah dipahami**, **skalabel**, dan siap untuk level skala *Enterprise* maupun *Production*.
 
 ---
 
-## 🛠️ Tech Stack
+## 📋 Persyaratan Sistem (Requirements)
 
-- **Runtime**: Go 1.26.x
-- **Framework**: [Fiber v2](https://gofiber.io/)
-- **Database**: PostgreSQL (via [pgx v5](https://github.com/jackc/pgx))
-- **Migration**: [golang-migrate](https://github.com/golang-migrate/migrate)
-- **Quality**: [golangci-lint](https://golangci-lint.run/), [gosec](https://securego.io/)
-- **Testing**: [testify](https://github.com/stretchr/testify), [testcontainers-go](https://golang.testcontainers.org/)
-
----
-
-## 📁 Project Structure
-
-```
-go_server/
-├── main.go                          # Entry point (Bootstrap & Config)
-├── Makefile                         # Unified Task Runner
-├── internal/                        # Private code (Clean Architecture)
-│   ├── app.go                       # Fiber Application Setup
-│   ├── config/                      # Database Pool & Environment
-│   ├── handlers/                    # HTTP Layer (Payload validation & response)
-│   ├── services/                    # Business Logic Layer (SQL operations)
-│   ├── types/                       # DTOs & Domain Models
-│   ├── middlewares/                 # Auth, Logging, Rate Limit, Recovery
-│   ├── routes/                      # Route Definitions
-│   └── utils/                       # Security & Response Helpers
-├── test/                            # Integration Tests (Testcontainers)
-└── migrations/                      # SQL Migrations (.up.sql & .down.sql)
-```
+Sebelum memulai, pastikan Anda telah menginstal beberapa perangkat lunak berikut di dalam mesin Anda:
+1. **[Go v1.26+](https://go.dev/dl/)**: Bahasa pemrograman utama yang digunakan.
+2. **[Docker Desktop / Colima](https://www.docker.com/) (Opsional)**: Sangat direkomendasikan untuk eksekusi *Integration Testing* otomatis (`testcontainers`) dan menghidupkan Database lokal tanpa instalasi manual. 
+   - *Alternatif tanpa Docker*: Anda **tetap bisa menjalankan proyek ini tanpa Docker!** Cukup instal PostgreSQL (cth: Postgres.app / pgAdmin) di komputer Anda sendiri atau gunakan Cloud DB (seperti Supabase/Neon), lalu ubah link koneksi `DATABASE_URL` pada file `.env`.
+3. **[Make](https://www.gnu.org/software/make/)**: *Task runner* yang menyederhanakan perintah-perintah terminal kompleks. (Sudah bawaan di MacOS/Linux. Windows bisa menggunakan Git Bash atau WSL).
 
 ---
 
-## 🚀 Getting Started
+## 📥 Cara Cloning Project
 
-### Prerequisites
+Langkah pertama adalah menyalin repositori ini ke dalam mesin lokal Anda:
 
-- Go 1.26+
-- Docker (untuk menjalankan database lokal & integration tests)
-- `make`
-
-### 1. Setup Environment
 ```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/go_server.git
+
+# 2. Masuk ke dalam direktori project
+cd go_server
+```
+
+---
+
+## 🏃‍♂️ Step-by-Step Menjalankan Project
+
+Ikuti 3 langkah mudah di bawah ini untuk menjalankan server dari nol.
+
+### Langkah 1: Persiapan Environment
+Aplikasi ini membutuhkan file `.env` sebagai sumber konfigurasi utama (port, koneksi database, secret key, dll).
+```bash
+# Gandakan file template .env.example menjadi .env
 cp .env.example .env
 ```
+*(Opsional: Buka file `.env` dan sesuaikan nilainya jika diperlukan, namun secara default konfigurasi ini sudah siap digunakan).*
 
-### 2. Jalankan Infrastruktur & Migrasi
+### Langkah 2: Unduh Dependencies & Nyalakan Database
+Aplikasi berjalan ditopang dengan PostgreSQL. 
+
 ```bash
-# Start DB via Docker Compose (Opsional)
+# Unduh library dan dependencies Go
+make install
+```
+
+> 🔔 **Catatan Database (Tanpa Docker):** 
+> Jika Anda **tidak menggunakan Docker**, pastikan PostgreSQL di komputer Anda (atau Cloud) sudah menyala, dan link di dalam `.env` (`DATABASE_URL=postgres://...`) sudah mengarah ke database tersebut. **Abaikan perintah compose-up di bawah.**
+
+Jika Anda **menggunakan Docker**, Anda cukup memutar perintah otomatis ini untuk menghidupkan PostgreSQL di background:
+```bash
+# (Khusus Pengguna Docker) Nyalakan PostgreSQL via Docker Compose
 make compose-up
+```
 
-# Jalankan migrasi
+### Langkah 3: Migrasi Tabel & Jalankan Server!
+Setelah database menyala, kita perlu men-generate struktur tabelnya (Migrasi). Setelah itu, nyalakan _development server_.
+```bash
+# Buat tabel-tabel di database secara otomatis
 make migrate-up
-```
 
-### 3. Jalankan Server
-```bash
-# Development (Hot Reload via Air)
+# Jalankan server mode development (dilengkapi Hot-Reload!)
 make dev
+```
+🎉 **Selesai!** Server kini berjalan di `http://127.0.0.1:3000`. Coba akses endpoint `http://127.0.0.1:3000/health` dari browser/Postman Anda!
 
-# Production Build
-make build && make run
+---
+
+## 💡 Arsitektur yang Mudah Dikelola (Penjelasan Perintah)
+
+Untuk mempertahankan kualitas kode `(clean code)` dan kemudahan developer (*Developer Experience*), kami telah mengemas semua *workflow* kompleks ke dalam satu-kata ajaib yaitu **`make`**. 
+
+Anda tidak perlu menghafal panjangnya perintah terminal Go. Silakan lihat betapa rapinya pengelolaan infrastruktur melalui perintah-perintah berikut:
+
+### 👨‍💻 Development & Proses Build
+- **`make dev`** — Menyalakan server dengan kemampuan *hot-reload*. Anda cukup klik *Save* (`Ctrl+S`) di code editor, dan server akan otomatis *restart* (memakai modul Air).
+- **`make build`** — Melakukan kompilasi kode (`build`) yang telah di-optimisasi khusus untuk di-deploy ke environment sistem operasi Production.
+- **`make run`** — Melakukan build dan langsung mengeksekusi file *binary* server aplikasi rilis.
+
+### 🗄️ Database & Migrasi
+- **`make migrate-create name=tambah_tabel_x`** — Membuat file SQL migrasi *up & down* baru (kosong).
+- **`make migrate-up`** — Menerapkan/Menjalankan file SQL migrasi terbaru ke dalam database.
+- **`make migrate-down`** — Mengembalikan (*Rollback*) satu versi langkah migrasi ke belakang. Sangat berguna jika salah membuat tabel saat ngoding.
+
+### 🧪 Kualitas dan Keamanan Kode (Tests & Security)
+Struktur kode ini menerapkan konsep *Bullet-Proof* atau tak-tertembus. Anda dapat memverifikasi kualitas penulisan kode atau mengecek celah kerentanan dalam sekejap mata:
+- **`make test-cover`** — Menjalankan *Integration Test Suite* berlapis menggunakan Docker-Testcontainers + menampilkan **persentase laporan cakupan kode (Coverage)**. Target proyek kita selalu mempertahankan cakupan keamanan di angka rata-rata `85%` ke-atas.
+- **`make lint`** — Merapikan dan menganalisis kesalahan-kesalahan penulisan (typo, import tidak terpakai, deklarasi redundant) standar baku golang via *golangci-lint*.
+- **`make security`** — 🛡️ **FITUR UNGGULAN.** Meng-audit seluruh repositori baris per baris secara otomatis untuk mendeteksi *Hardcoded-password*, potensi kerentanan SQL Injection, dan celah otentikasi.
+
+### 🐳 Manajemen Ekosistem Docker
+- **`make compose-up`** — Menghidupkan seluruh layanan infra (Database Postgres) background.
+- **`make compose-down`** — Menyapu bersih dan mematikan infrastruktur.
+
+---
+
+## 📁 Struktur Direktori Singkat
+
+Arsitektur kita yang berbasis `Clean Architecture` sangat tegas memisahkan logika lalu lintas agar sistem tidak berantakan:
+
+```text
+go_server/
+├── internal/             # Jantung dari aplikasi
+│   ├── handlers/         # Titik terima & validasi Body Request HTTP (Hanya mengecek input)
+│   ├── services/         # Logika Utama Pemrosesan Data & Operasi Transaksi SQL
+│   ├── types/            # DTO (Data Transfer Objects), Struct, Bentuk Skema Data
+│   ├── middlewares/      # Interceptor (Autentikasi, Batasan Kuota Rate-Limit, CORS)
+│   └── routes/           # Peta Alamat URL Endpoint (Router API)
+├── migrations/           # Riwayat pembuatan tabel SQL berseri
+├── test/integration/     # Rumah dari segala alat pengetesan otomatis Docker
+└── Makefile              # Daftar menu kendali "make" (Command Center) 
 ```
 
----
-
-## 📜 Available Commands
-
-| Command | Deskripsi |
-|---------|-----------|
-| `make dev` | Jalankan server dengan hot-reload (Air) |
-| `make security` | **Audit keamanan** menggunakan gosec (Issues: 0 baseline) |
-| `make lint` | Analisis statis kode (golangci-lint) |
-| `make test` | Jalankan unit & integration tests |
-| `make test-cover` | Jalankan test + buka laporan coverage (Browser) |
-| `make migrate-up` | Sinkronisasi skema database ke versi terbaru |
-| `make fmt` | Format kode sesuai standar Go |
-
----
-
-## 🛡️ Security Audit
-
-Proyek ini mewajibkan **0 security issues**. Sebelum melakukan push, pastikan Anda menjalankan:
-```bash
-make security
-```
-Kami mengecualikan `.go_cache` untuk menghindari noise dari dependensi eksternal, fokus hanya pada keamanan kode internal.
-
----
-
-## 📡 API Endpoints
-
-### 🔐 Authentication
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| POST | `/api/v1/auth/register` | Baris pengguna baru (Argon2id) |
-| POST | `/api/v1/auth/login` | Login & dapatkan JWT |
-
-### 🏢 Companies (CRUD)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| GET | `/api/v1/companies` | List companies (Pagination) |
-| POST | `/api/v1/companies` | Buat company baru |
-| GET | `/api/v1/companies/:id` | Detail company |
-| PUT | `/api/v1/companies/:id` | Update data company |
-| DELETE | `/api/v1/companies/:id` | Hapus company |
-
-### 🔍 Health & Meta
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| GET | `/health` | Status API & Database Pool |
-
----
-
-## 🧪 Testing Strategy
-
-Kami menggunakan **Integration Testing** yang berat untuk menjamin kualitas:
-- **Testcontainers**: Menjalankan PostgreSQL asli dalam container sementara untuk setiap session test.
-- **Bullet-Proof**: Test mencakup skenario sukses, error validasi, hingga duplikasi data.
-
-Jalankan test dengan:
-```bash
-make test
-```
-
----
-
-## License
-
-MIT
+Selamat membangun sistem yang menakjubkan! Jika ragu dengan langkah apa saja, cukup ketik **`make`** atau **`make help`** di terminal untuk melihat daftar bantuan secara instan.
