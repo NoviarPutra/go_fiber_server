@@ -42,9 +42,12 @@ func Login(c *fiber.Ctx) error {
 	// 5. Set cookies untuk FE (Security: HTTPOnly)
 	utils.SetAuthCookies(c, result.AccessToken, result.RefreshToken)
 
-	// Hilangkan token dari body agar tidak bisa dibaca JavaScript (Bullet-Proof)
-	result.AccessToken = ""
-	result.RefreshToken = ""
+	// Hilangkan token dari body untuk klien Web (mencegah XSS - tidak bisa dibaca JS).
+	// Jika klien adalah mobile apps (Flutter), biarkan token tetap tersedia di body.
+	if c.Get("X-Client-Type") != "mobile" {
+		result.AccessToken = ""
+		result.RefreshToken = ""
+	}
 
 	return utils.Success(c, result, "Login berhasil")
 }

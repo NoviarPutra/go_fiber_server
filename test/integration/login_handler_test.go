@@ -94,6 +94,28 @@ func (s *LoginHandlerTestSuite) TestLogin_Success() {
 	}
 	s.True(accessTokenFound, "Access token harus di-set di HTTP-only cookie")
 	s.True(refreshTokenFound, "Refresh token harus di-set di HTTP-only cookie")
+
+	// ----------------------------------------------------
+	// Coverage untuk Mobile
+	// ----------------------------------------------------
+	reqMobile := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewBuffer(body))
+	reqMobile.Header.Set("Content-Type", "application/json")
+	reqMobile.Header.Set("X-Client-Type", "mobile")
+
+	respMobile, err := s.app.Test(reqMobile, 10000)
+	require.NoError(s.T(), err)
+	defer func() { _ = respMobile.Body.Close() }()
+
+	s.Equal(200, respMobile.StatusCode)
+
+	var resMobile map[string]interface{}
+	err = json.NewDecoder(respMobile.Body).Decode(&resMobile)
+	require.NoError(s.T(), err)
+
+	dataMobile, ok := resMobile["data"].(map[string]interface{})
+	require.True(s.T(), ok)
+	s.NotEmpty(dataMobile["access_token"], "Access Token harus dikembalikan pada response JSON untuk Mobile Client")
+	s.NotEmpty(dataMobile["refresh_token"], "Refresh Token harus dikembalikan pada response JSON untuk Mobile Client")
 }
 
 func (s *LoginHandlerTestSuite) TestLogin_Security_Rejections() {
