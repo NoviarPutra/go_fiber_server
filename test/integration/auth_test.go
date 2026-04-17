@@ -89,7 +89,17 @@ func (s *AuthIntegrationTestSuite) TestAuthFlow() {
 		require.NoError(s.T(), err, "Gagal mendecode JSON response login")
 
 		s.True(result.Success)
-		s.NotEmpty(result.Data["access_token"])
+		s.Empty(result.Data["access_token"], "Access token should not be in body")
+		
+		// Verifikasi cookie
+		var tokenFound bool
+		for _, c := range resp.Cookies() {
+			if c.Name == "access_token" {
+				tokenFound = true
+				s.NotEmpty(c.Value)
+			}
+		}
+		s.True(tokenFound, "Access token must be in cookie")
 	})
 }
 

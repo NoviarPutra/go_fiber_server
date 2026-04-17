@@ -75,7 +75,25 @@ func (s *LoginHandlerTestSuite) TestLogin_Success() {
 
 	data, ok := res["data"].(map[string]interface{})
 	require.True(s.T(), ok, "Format data response tidak sesuai")
-	s.NotEmpty(data["access_token"], "JWT Access Token tidak boleh kosong")
+	s.Empty(data["access_token"], "JWT Access Token tidak boleh ada di body")
+	s.Empty(data["refresh_token"], "JWT Refresh Token tidak boleh ada di body")
+
+	// Verifikasi Cookie
+	var accessTokenFound, refreshTokenFound bool
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == utils.CookieAccessToken {
+			accessTokenFound = true
+			s.NotEmpty(cookie.Value)
+			s.True(cookie.HttpOnly)
+		}
+		if cookie.Name == utils.CookieRefreshToken {
+			refreshTokenFound = true
+			s.NotEmpty(cookie.Value)
+			s.True(cookie.HttpOnly)
+		}
+	}
+	s.True(accessTokenFound, "Access token harus di-set di HTTP-only cookie")
+	s.True(refreshTokenFound, "Refresh token harus di-set di HTTP-only cookie")
 }
 
 func (s *LoginHandlerTestSuite) TestLogin_Security_Rejections() {

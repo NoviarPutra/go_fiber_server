@@ -59,6 +59,22 @@ func (s *AuthMiddlewareTestSuite) TestProtected_Success() {
 	s.Equal(200, resp.StatusCode)
 }
 
+func (s *AuthMiddlewareTestSuite) TestProtected_Cookie_Success() {
+	token := s.createTestToken(jwt.MapClaims{
+		"sub": "user-456",
+		"exp": time.Now().Add(time.Hour).Unix(),
+	}, s.secret)
+
+	req := httptest.NewRequest("GET", "/protected", nil)
+	// access_token is the internal name used in middlewares.Protected()
+	req.Header.Set("Cookie", "access_token="+token)
+
+	resp, err := s.app.Test(req)
+	s.Require().NoError(err)
+	defer resp.Body.Close()
+	s.Equal(200, resp.StatusCode)
+}
+
 func (s *AuthMiddlewareTestSuite) TestProtected_MissingToken() {
 	req := httptest.NewRequest("GET", "/protected", nil)
 	resp, err := s.app.Test(req)

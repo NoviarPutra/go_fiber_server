@@ -65,11 +65,24 @@ func (s *TokenManagementTestSuite) login(email, password string) *types.LoginRes
 	data, ok := result["data"].(map[string]interface{})
 	s.Require().True(ok, "Format data response tidak sesuai: %v", result)
 
-	return &types.LoginResponse{
-		AccessToken:  data["access_token"].(string),
-		RefreshToken: data["refresh_token"].(string),
-		ExpiresIn:    int64(data["expires_in"].(float64)),
+	loginResp := &types.LoginResponse{
+		ExpiresIn: int64(data["expires_in"].(float64)),
 	}
+
+	// Extract tokens from Cookies (HTTPOnly)
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == utils.CookieAccessToken {
+			loginResp.AccessToken = cookie.Value
+		}
+		if cookie.Name == utils.CookieRefreshToken {
+			loginResp.RefreshToken = cookie.Value
+		}
+	}
+
+	s.NotEmpty(loginResp.AccessToken, "Access token harus ada di cookie")
+	s.NotEmpty(loginResp.RefreshToken, "Refresh token harus ada di cookie")
+
+	return loginResp
 }
 
 // ─── TEST CASES ──────────────────────────────────────────────────────────────
@@ -80,13 +93,11 @@ func (s *TokenManagementTestSuite) TestRefresh_Success() {
 	s.seedUser(email, pass, true)
 	loginResp := s.login(email, pass)
 
-	payload := types.RefreshTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
+	// Use Cookie instead of body
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	
-	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Wait a bit to ensure timestamps differ if needed (though not strictly necessary here)
+	// Wait a bit to ensure tokens differ (uuid/jti handles this now but good practice)
 	time.Sleep(100 * time.Millisecond)
 	
 	resp, err := s.app.Test(req, 5000)
@@ -98,14 +109,27 @@ func (s *TokenManagementTestSuite) TestRefresh_Success() {
 	var res map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&res)
 	s.Require().NoError(err)
-	s.Equal("Token berhasil diperbarui", res["message"])
 	
 	data, ok := res["data"].(map[string]interface{})
 	s.Require().True(ok, "Format data response tidak sesuai: %v", res)
 
-	s.NotEmpty(data["access_token"])
-	s.NotEmpty(data["refresh_token"])
-	s.NotEqual(loginResp.RefreshToken, data["refresh_token"], "Refresh token should be rotated")
+	s.Empty(data["access_token"], "Access token tidak boleh ada di body")
+	s.Empty(data["refresh_token"], "Refresh token tidak boleh ada di body")
+
+	// Extract from cookies
+	var newAccessToken, newRefreshToken string
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == utils.CookieAccessToken {
+			newAccessToken = cookie.Value
+		}
+		if cookie.Name == utils.CookieRefreshToken {
+			newRefreshToken = cookie.Value
+		}
+	}
+
+	s.NotEmpty(newAccessToken, "Access token harus ada di cookie")
+	s.NotEmpty(newRefreshToken, "Refresh token harus ada di cookie")
+	s.NotEqual(loginResp.RefreshToken, newRefreshToken, "Refresh token harus di-rotate")
 }
 
 func (s *TokenManagementTestSuite) TestRefresh_RotateAndRevokeOld() {
@@ -114,18 +138,16 @@ func (s *TokenManagementTestSuite) TestRefresh_RotateAndRevokeOld() {
 	s.seedUser(email, pass, true)
 	loginResp := s.login(email, pass)
 
-	// Refresh first time
-	payload := types.RefreshTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
-	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	// Refresh first time with cookie
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(200, resp.StatusCode)
 	resp.Body.Close()
 
 	// Try refresh with the OLD token again (Reuse Attack)
-	req2 := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req2.Header.Set("Content-Type", "application/json")
+	req2 := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req2.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	resp2, _ := s.app.Test(req2, 5000)
 	s.Equal(401, resp2.StatusCode, "Old token should be revoked after rotation")
 	resp2.Body.Close()
@@ -137,11 +159,9 @@ func (s *TokenManagementTestSuite) TestRevoke_Success() {
 	s.seedUser(email, pass, true)
 	loginResp := s.login(email, pass)
 
-	payload := types.RevokeTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
-	
-	req := httptest.NewRequest("POST", "/api/v1/auth/revoke", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	// Revoke with cookie
+	req := httptest.NewRequest("POST", "/api/v1/auth/revoke", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	
 	resp, err := s.app.Test(req, 5000)
 	s.NoError(err)
@@ -149,22 +169,26 @@ func (s *TokenManagementTestSuite) TestRevoke_Success() {
 
 	s.Equal(200, resp.StatusCode)
 
-	// Verify it's revoked by trying to refresh
-	refreshPayload := types.RefreshTokenRequest{RefreshToken: loginResp.RefreshToken}
-	rBody, _ := json.Marshal(refreshPayload)
-	rReq := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(rBody))
-	rReq.Header.Set("Content-Type", "application/json")
+	// Verify it's revoked by trying to refresh with cookie
+	rReq := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	rReq.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	rResp, _ := s.app.Test(rReq, 5000)
 	s.Equal(401, rResp.StatusCode)
 	rResp.Body.Close()
+
+	// Verify identity cookie is cleared
+	var accessTokenCleared bool
+	for _, c := range resp.Cookies() {
+		if c.Name == utils.CookieAccessToken && c.Value == "" {
+			accessTokenCleared = true
+		}
+	}
+	s.True(accessTokenCleared, "Auth cookie should be cleared on logout")
 }
 
 func (s *TokenManagementTestSuite) TestRefresh_InvalidToken() {
-	payload := types.RefreshTokenRequest{RefreshToken: "invalid-token-here"}
-	body, _ := json.Marshal(payload)
-	
-	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"=invalid-token")
 	
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode)
@@ -180,11 +204,8 @@ func (s *TokenManagementTestSuite) TestRefresh_InactiveUser() {
 	// Deactivate user
 	_, _ = testDBPool.Exec(context.Background(), "UPDATE users SET is_active = false WHERE email = $1", email)
 
-	payload := types.RefreshTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
-	
-	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode, "Should fail if user is no longer active")
@@ -197,19 +218,16 @@ func (s *TokenManagementTestSuite) TestRevoke_AlreadyRevoked() {
 	s.seedUser(email, pass, true)
 	loginResp := s.login(email, pass)
 
-	payload := types.RevokeTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
-	
-	// Revoke first time - Success
-	req1 := httptest.NewRequest("POST", "/api/v1/auth/revoke", bytes.NewBuffer(body))
-	req1.Header.Set("Content-Type", "application/json")
+	// Revoke via cookie
+	req1 := httptest.NewRequest("POST", "/api/v1/auth/revoke", nil)
+	req1.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	resp1, _ := s.app.Test(req1, 5000)
 	s.Equal(200, resp1.StatusCode)
 	resp1.Body.Close()
 
-	// Revoke second time - Should return 401 (ErrRefreshTokenInvalid)
-	req2 := httptest.NewRequest("POST", "/api/v1/auth/revoke", bytes.NewBuffer(body))
-	req2.Header.Set("Content-Type", "application/json")
+	// Revoke second time via cookie
+	req2 := httptest.NewRequest("POST", "/api/v1/auth/revoke", nil)
+	req2.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	resp2, _ := s.app.Test(req2, 5000)
 	s.Equal(401, resp2.StatusCode)
 	resp2.Body.Close()
@@ -227,11 +245,8 @@ func (s *TokenManagementTestSuite) TestRefresh_ExpiredToken() {
 		loginResp.RefreshToken)
 	s.Require().NoError(err)
 
-	payload := types.RefreshTokenRequest{RefreshToken: loginResp.RefreshToken}
-	body, _ := json.Marshal(payload)
-	
-	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	req.Header.Set("Cookie", utils.CookieRefreshToken+"="+loginResp.RefreshToken)
 	
 	resp, _ := s.app.Test(req, 5000)
 	s.Equal(401, resp.StatusCode, "Should fail if token is expired")
