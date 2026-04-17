@@ -10,18 +10,21 @@ import (
 
 func Revoke(c *fiber.Ctx) error {
 	var req types.RevokeTokenRequest
-	if err := c.BodyParser(&req); err != nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Format request tidak valid")
+	_ = c.BodyParser(&req)
+
+	refreshToken := req.RefreshToken
+	if refreshToken == "" {
+		refreshToken = c.Cookies(utils.CookieRefreshToken)
 	}
 
-	if err := validate.Struct(req); err != nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, format_validation_error(err))
+	if refreshToken == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Refresh token diperlukan")
 	}
 
 	db := c.Locals("db").(*pgxpool.Pool)
 	service := services.NewAuthService(db)
 
-	err := service.Revoke(c.Context(), req.RefreshToken)
+	err := service.Revoke(c.Context(), refreshToken)
 	if err != nil {
 		if err == services.ErrRefreshTokenInvalid {
 			return utils.ErrorResponse(c, fiber.StatusUnauthorized, err.Error())
@@ -29,5 +32,8 @@ func Revoke(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return utils.Success[any](c, nil, "Token berhasil dicabut")
+	// 2. Bersihkan cookies
+	utils.ClearAuthCookies(c)
+
+	return utils.Success[any](c, nil, "Token berhasil dicabut (Logout)")
 }

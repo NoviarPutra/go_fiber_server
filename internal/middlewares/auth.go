@@ -18,13 +18,12 @@ func Protected() fiber.Handler {
 
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{
-			// FIX: Untuk HS256, cukup masukkan key []byte.
-			// Library secara otomatis akan memvalidasi signature menggunakan HMAC.
 			Key: []byte(secret),
 		},
 		ContextKey: "user_auth",
-		// Jika ingin membatasi algoritma secara eksplisit di versi terbaru:
-		// SigningKeys: map[string]jwtware.SigningKey{"HS256": {Key: []byte(secret)}},
+		// Support both Header and Cookie
+		TokenLookup: "header:Authorization,cookie:" + utils.CookieAccessToken,
+		AuthScheme:  "Bearer",
 		ErrorHandler: jwt_error_handler,
 	})
 }

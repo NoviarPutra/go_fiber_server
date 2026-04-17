@@ -10,24 +10,35 @@ import (
 
 func Refresh(c *fiber.Ctx) error {
 	var req types.RefreshTokenRequest
-	if err := c.BodyParser(&req); err != nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Format request tidak valid")
+	_ = c.BodyParser(&req) // Ignore error as we also check cookies
+
+	// 1. Ambil token dari body atau cookie
+	refreshToken := req.RefreshToken
+	if refreshToken == "" {
+		refreshToken = c.Cookies(utils.CookieRefreshToken)
 	}
 
-	if err := validate.Struct(req); err != nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, format_validation_error(err))
+	if refreshToken == "" {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Refresh token diperlukan")
 	}
 
 	db := c.Locals("db").(*pgxpool.Pool)
 	service := services.NewAuthService(db)
 
-	resp, err := service.Refresh(c.Context(), req.RefreshToken)
+	resp, err := service.Refresh(c.Context(), refreshToken)
 	if err != nil {
 		if err == services.ErrRefreshTokenInvalid {
 			return utils.ErrorResponse(c, fiber.StatusUnauthorized, err.Error())
 		}
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
+
+	// 2. Update cookies baru
+	utils.SetAuthCookies(c, resp.AccessToken, resp.RefreshToken)
+
+	// Hilangkan token dari body agar tidak bisa dibaca JavaScript (Bullet-Proof)
+	resp.AccessToken = ""
+	resp.RefreshToken = ""
 
 	return utils.Success(c, resp, "Token berhasil diperbarui")
 }

@@ -13,7 +13,52 @@ import (
 const (
 	AccessTokenExpiry  = 15 * time.Minute
 	RefreshTokenExpiry = 7 * 24 * time.Hour
+
+	CookieAccessToken  = "access_token"
+	CookieRefreshToken = "refresh_token"
 )
+
+func SetAuthCookies(c *github_com_gofiber_fiber_v2.Ctx, accessToken, refreshToken string) {
+	isProd := os.Getenv("APP_ENV") == "production"
+
+	c.Cookie(&github_com_gofiber_fiber_v2.Cookie{
+		Name:     CookieAccessToken,
+		Value:    accessToken,
+		Expires:  time.Now().Add(AccessTokenExpiry),
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "Lax", // Lax allow initial navigation but protects common CSRF
+		Path:     "/",
+	})
+
+	c.Cookie(&github_com_gofiber_fiber_v2.Cookie{
+		Name:     CookieRefreshToken,
+		Value:    refreshToken,
+		Expires:  time.Now().Add(RefreshTokenExpiry),
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "Strict", // Strict for refresh token rotation as it's sensitive
+		Path:     "/api/v1/auth", // Restricted scope
+	})
+}
+
+func ClearAuthCookies(c *github_com_gofiber_fiber_v2.Ctx) {
+	c.Cookie(&github_com_gofiber_fiber_v2.Cookie{
+		Name:     CookieAccessToken,
+		Value:    "",
+		Expires:  time.Now().Add(-24 * time.Hour),
+		HTTPOnly: true,
+		Path:     "/",
+	})
+
+	c.Cookie(&github_com_gofiber_fiber_v2.Cookie{
+		Name:     CookieRefreshToken,
+		Value:    "",
+		Expires:  time.Now().Add(-24 * time.Hour),
+		HTTPOnly: true,
+		Path:     "/api/v1/auth",
+	})
+}
 
 type JWTClaims struct {
 	UserID string `json:"user_id"`
