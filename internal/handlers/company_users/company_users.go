@@ -42,12 +42,12 @@ func List(c *fiber.Ctx) error {
 		return utils.BadRequest(c, "ID perusahaan tidak valid")
 	}
 
-	page, _ := c.Locals("page").(int)
-	if page < 1 {
+	page, ok := c.Locals("page").(int)
+	if !ok || page < 1 {
 		page = 1
 	}
-	perPage, _ := c.Locals("per_page").(int)
-	if perPage < 1 {
+	perPage, ok := c.Locals("per_page").(int)
+	if !ok || perPage < 1 {
 		perPage = 10
 	}
 

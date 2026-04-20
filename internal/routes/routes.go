@@ -8,6 +8,7 @@ import (
 	"github.com/yourusername/go_server/internal/handlers/companies"
 	"github.com/yourusername/go_server/internal/handlers/company_branches"
 	"github.com/yourusername/go_server/internal/handlers/company_users"
+	"github.com/yourusername/go_server/internal/handlers/divisions"
 	"github.com/yourusername/go_server/internal/handlers/health"
 	"github.com/yourusername/go_server/internal/handlers/user_devices"
 	"github.com/yourusername/go_server/internal/handlers/users"
@@ -61,6 +62,14 @@ func SetupRoutes(app *fiber.App) {
 	branches_group.Get("/:id", middlewares.Protected(), company_branches.GetByID)
 	branches_group.Put("/:id", middlewares.Protected(), company_branches.Update)
 	branches_group.Delete("/:id", middlewares.Protected(), company_branches.Delete)
+
+	// Divisions (private)
+	divisions_group := api.Group("/divisions")
+	divisions_group.Post("/", middlewares.Protected(), divisions.Create)
+	divisions_group.Get("/", middlewares.Protected(), middlewares.Pagination, divisions.GetAll)
+	divisions_group.Get("/:id", middlewares.Protected(), divisions.GetByID)
+	divisions_group.Put("/:id", middlewares.Protected(), divisions.Update)
+	divisions_group.Delete("/:id", middlewares.Protected(), divisions.Delete)
 
 	// Audit Logs (private - admin only ideally, but we put it here)
 	audit_group := api.Group("/audit-logs")
