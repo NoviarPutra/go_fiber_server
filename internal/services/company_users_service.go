@@ -178,7 +178,7 @@ func (s *CompanyUsersService) Remove(ctx context.Context, companyID, userID uuid
 	defer cancel()
 
 	query := `UPDATE company_users SET deleted_at = now(), left_at = now() WHERE company_id = $1 AND user_id = $2 AND deleted_at IS NULL`
-	
+
 	var commandTag pgconn.CommandTag
 	err := utils.WithAuditTx(ctx, s.db, utils.GetAuditInfo(ctx), func(tx pgx.Tx) error {
 		var txErr error

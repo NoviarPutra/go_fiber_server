@@ -20,10 +20,10 @@ import (
 
 type CompanyUsersIntegrationTestSuite struct {
 	suite.Suite
-	app       *fiber.App
-	pool      *pgxpool.Pool
-	token     string
-	companyID uuid.UUID
+	app        *fiber.App
+	pool       *pgxpool.Pool
+	token      string
+	companyID  uuid.UUID
 	testUserID uuid.UUID // User to be added
 }
 
