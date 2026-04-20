@@ -59,7 +59,7 @@ func (s *CompanyUsersService) List(ctx context.Context, companyID uuid.UUID, pag
 		)
 		SELECT 
 			cu.id, cu.company_id, cu.user_id, cu.branch_id, cu.employee_code, cu.is_owner, cu.is_active, 
-			cu.joined_at, cu.updated_at, u.full_name, u.email,
+			cu.joined_at, cu.updated_at, u.username, u.email,
 			ct.total
 		FROM company_users cu
 		JOIN users u ON cu.user_id = u.id
@@ -103,7 +103,7 @@ func (s *CompanyUsersService) GetDetail(ctx context.Context, companyID, userID u
 	query := `
 		SELECT 
 			cu.id, cu.company_id, cu.user_id, cu.branch_id, cu.employee_code, cu.is_owner, cu.is_active, 
-			cu.joined_at, cu.updated_at, u.full_name, u.email
+			cu.joined_at, cu.updated_at, u.username, u.email
 		FROM company_users cu
 		JOIN users u ON cu.user_id = u.id
 		WHERE cu.company_id = $1 AND cu.user_id = $2 AND cu.deleted_at IS NULL`

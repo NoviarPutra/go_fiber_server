@@ -25,4 +25,7 @@ var (
 
 	ErrCompanyUserNotFound      = errors.New("user perusahaan tidak ditemukan")
 	ErrCompanyUserAlreadyExists = errors.New("user sudah terdaftar di perusahaan ini")
+
+	ErrDivisionNotFound   = errors.New("divisi tidak ditemukan")
+	ErrDivisionCodeExists = errors.New("kode divisi sudah digunakan di perusahaan ini")
 )
